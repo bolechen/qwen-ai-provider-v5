@@ -96,9 +96,9 @@ yarn add qwen-ai-provider
 ```
 
 ### Zod Compatibility
-- Supports `zod` versions: `^3.25.0` or `^4.0.0`.
-- This package imports `z` from `zod` and uses only APIs compatible with both versions.
-- If you use structured outputs or tools with schemas, you can use either Zod v3.25+ or Zod v4 in your app.
+- Supports `zod` versions: `^3.25.76` or `^4.1.8`.
+- This matches the peer dependency range required by `@ai-sdk/provider-utils@3.x` to ensure installs resolve cleanly.
+- The provider uses only APIs compatible with both ranges.
 
 ## Provider Instance
 
