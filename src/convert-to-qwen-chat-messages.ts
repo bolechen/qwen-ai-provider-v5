@@ -3,9 +3,7 @@ import type {
   SharedV2ProviderOptions,
 } from "@ai-sdk/provider"
 import type { QwenChatPrompt } from "./qwen-api-types"
-import {
-  UnsupportedFunctionalityError,
-} from "@ai-sdk/provider"
+import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
 import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils"
 
 // JSDoc for helper function to extract Qwen options.
@@ -70,8 +68,13 @@ export function convertToQwenChatMessages(
                   const data = part.data
                   let url: string
                   if (typeof data === "string") {
-                    // Already base64 or URL
-                    url = data.startsWith("http") ? data : `data:${part.mediaType};base64,${data}`
+                    // Preserve full URLs and pre-formed data URLs; otherwise, treat as raw base64
+                    if (data.startsWith("http") || data.startsWith("data:")) {
+                      url = data
+                    }
+                    else {
+                      url = `data:${part.mediaType};base64,${data}`
+                    }
                   }
                   else if (data instanceof URL) {
                     url = data.toString()
@@ -88,7 +91,8 @@ export function convertToQwenChatMessages(
                 }
                 // Non-image files are unsupported
                 throw new UnsupportedFunctionalityError({
-                  functionality: "Non-image file content parts in user messages",
+                  functionality:
+                    "Non-image file content parts in user messages",
                 })
               }
               default: {
@@ -146,7 +150,8 @@ export function convertToQwenChatMessages(
             case "tool-result": {
               // Tool results should not appear in assistant messages
               throw new UnsupportedFunctionalityError({
-                functionality: "tool-result content parts in assistant messages",
+                functionality:
+                  "tool-result content parts in assistant messages",
               })
             }
             default: {

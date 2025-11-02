@@ -1,8 +1,6 @@
 /* eslint-disable dot-notation */
 import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
-import {
-  convertReadableStreamToArray,
-} from "@ai-sdk/provider-utils/test"
+import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QwenChatLanguageModel } from "./qwen-chat-language-model"
 import { createQwen } from "./qwen-provider"
@@ -173,7 +171,11 @@ describe("doGenerate", () => {
   })
 
   it("should extract usage with V2 field names", async () => {
-    responseBody.usage = { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 }
+    responseBody.usage = {
+      prompt_tokens: 20,
+      total_tokens: 25,
+      completion_tokens: 5,
+    }
     const provider = createTestProvider()
     const model = provider("qwen-chat")
 
@@ -448,7 +450,7 @@ describe("doGenerate", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: "{\"value\":\"Spark\"}",
+      input: { value: "Spark" },
     })
   })
 
@@ -811,10 +813,18 @@ describe("doStream", () => {
       timestamp: new Date("2023-12-15T16:17:00.000Z"),
     })
     expect(parts.filter(p => p.type === "text-start")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "Hello")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === ", ")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "World!")).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === ""),
+    ).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === "Hello"),
+    ).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === ", "),
+    ).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === "World!"),
+    ).toHaveLength(1)
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
@@ -854,11 +864,21 @@ describe("doStream", () => {
       modelId: "qwen-chat",
       timestamp: new Date("2024-03-25T09:06:38.000Z"),
     })
-    const reasoningStartIndex = parts.findIndex(p => p.type === "reasoning-start")
-    const reasoningDelta1 = parts.find(p => p.type === "reasoning-delta" && p.delta === "Let me think")
-    const reasoningDelta2 = parts.find(p => p.type === "reasoning-delta" && p.delta === " about this")
-    const textDelta1 = parts.find(p => p.type === "text-delta" && p.delta === "Here's")
-    const textDelta2 = parts.find(p => p.type === "text-delta" && p.delta === " my response")
+    const reasoningStartIndex = parts.findIndex(
+      p => p.type === "reasoning-start",
+    )
+    const reasoningDelta1 = parts.find(
+      p => p.type === "reasoning-delta" && p.delta === "Let me think",
+    )
+    const reasoningDelta2 = parts.find(
+      p => p.type === "reasoning-delta" && p.delta === " about this",
+    )
+    const textDelta1 = parts.find(
+      p => p.type === "text-delta" && p.delta === "Here's",
+    )
+    const textDelta2 = parts.find(
+      p => p.type === "text-delta" && p.delta === " my response",
+    )
 
     expect(reasoningStartIndex).toBeGreaterThan(-1)
     expect(reasoningDelta1).toBeDefined()
@@ -942,7 +962,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: "{\"value\":\"Sparkle Day\"}",
+      input: { value: "Sparkle Day" },
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1014,7 +1034,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: "{\"value\":\"Sparkle Day\"}",
+      input: { value: "Sparkle Day" },
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1092,7 +1112,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
       toolName: "searchGoogle",
-      input: "{\"query\": \"latest news on ai\"}",
+      input: { query: "latest news on ai" },
     })
   })
 
@@ -1138,7 +1158,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: "{\"value\":\"Sparkle Day\"}",
+      input: { value: "Sparkle Day" },
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1362,7 +1382,11 @@ describe("doStream simulated streaming", () => {
       timestamp: expect.any(Date),
     })
     expect(parts.filter(p => p.type === "text-start")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "Hello, World!")).toHaveLength(1)
+    expect(
+      parts.filter(
+        p => p.type === "text-delta" && p.delta === "Hello, World!",
+      ),
+    ).toHaveLength(1)
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
@@ -1390,10 +1414,19 @@ describe("doStream simulated streaming", () => {
     const parts = await convertReadableStreamToArray(stream)
 
     expect(parts.filter(p => p.type === "reasoning-start")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "reasoning-delta" && p.delta === "This is the reasoning")).toHaveLength(1)
+    expect(
+      parts.filter(
+        p =>
+          p.type === "reasoning-delta" && p.delta === "This is the reasoning",
+      ),
+    ).toHaveLength(1)
     expect(parts.filter(p => p.type === "reasoning-end")).toHaveLength(1)
     expect(parts.filter(p => p.type === "text-start")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "Hello, World!")).toHaveLength(1)
+    expect(
+      parts.filter(
+        p => p.type === "text-delta" && p.delta === "Hello, World!",
+      ),
+    ).toHaveLength(1)
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
@@ -1452,7 +1485,7 @@ describe("doStream simulated streaming", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: "{\"value\":\"Sparkle Day\"}",
+      input: { value: "Sparkle Day" },
     })
     expect(parts).toContainEqual({
       type: "finish",
