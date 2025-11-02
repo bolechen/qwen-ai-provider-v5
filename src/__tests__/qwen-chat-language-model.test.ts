@@ -384,6 +384,60 @@ describe("doGenerate", () => {
     })
   })
 
+  it("should include only function tools and warn for provider-defined tools", async () => {
+    const provider = createTestProvider()
+    const model = provider("qwen-chat")
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: "function",
+          name: "func-tool",
+          inputSchema: {
+            type: "object",
+            properties: { x: { type: "number" } },
+            required: ["x"],
+            additionalProperties: false,
+            $schema: "http://json-schema.org/draft-07/schema#",
+          },
+        },
+        {
+          type: "provider-defined",
+          id: "qwen.unsupported",
+          name: "unsupported",
+          args: {},
+        },
+      ],
+    })
+
+    // Request should contain only the function tool
+    expect(requestBody).toMatchObject({
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "func-tool",
+            parameters: expect.any(Object),
+          },
+        },
+      ],
+    })
+
+    // Warning for dropped provider-defined tool
+    expect(warnings).toEqual([
+      {
+        type: "unsupported-tool",
+        tool: {
+          type: "provider-defined",
+          id: "qwen.unsupported",
+          name: "unsupported",
+          args: {},
+        },
+      },
+    ])
+  })
+
   it("should pass headers", async () => {
     const provider = createTestProvider({
       headers: {
@@ -831,6 +885,78 @@ describe("doStream", () => {
       finishReason: "stop",
       usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
     })
+  })
+
+  it("should emit error parts when server sends error objects", async () => {
+    responseChunks = [
+      `data: {"object":"error","message":"boom","type":"bad_request","param":null,"code":null}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT })
+    const parts = await convertReadableStreamToArray(stream)
+
+    expect(parts).toContainEqual({ type: "error", error: "boom" })
+  })
+
+  it("should handle chunks with null delta by emitting only metadata/finish", async () => {
+    responseChunks = [
+      `data: {"id":"abc","object":"chat.completion.chunk","created":1702657020,"model":"qwen-chat","choices":[{"index":0,"delta":null,"finish_reason":null}]}\n\n`,
+      `data: {"id":"abc","object":"chat.completion.chunk","created":1702657021,"model":"qwen-chat","choices":[{"index":0,"delta":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2}}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT })
+    const parts = await convertReadableStreamToArray(stream)
+
+    // Should have stream-start, response-metadata, finish; no text-delta/tool events
+    expect(parts.find(p => p.type === "response-metadata")).toBeTruthy()
+    expect(parts.find(p => p.type === "finish")).toBeTruthy()
+    expect(parts.find(p => p.type === "text-delta")).toBeFalsy()
+    expect(parts.find(p => p.type === "tool-call")).toBeFalsy()
+  })
+
+  it("should throw InvalidResponseDataError when tool_calls delta has invalid type", async () => {
+    responseChunks = [
+      `data: {"id":"abc","object":"chat.completion.chunk","created":1702657020,"model":"qwen-chat","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"id1","type":null,"function":{"name":"t","arguments":"{}"}}]},"finish_reason":null}]}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT })
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects
+      .toThrow()
+  })
+
+  it("should throw InvalidResponseDataError when tool_calls delta missing id", async () => {
+    responseChunks = [
+      `data: {"id":"abc","object":"chat.completion.chunk","created":1702657020,"model":"qwen-chat","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function","function":{"name":"t","arguments":"{}"}}]},"finish_reason":null}]}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT })
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects
+      .toThrow()
+  })
+
+  it("should throw InvalidResponseDataError when tool_calls delta missing function.name", async () => {
+    responseChunks = [
+      `data: {"id":"abc","object":"chat.completion.chunk","created":1702657020,"model":"qwen-chat","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"id1","type":"function","function":{}}]},"finish_reason":null}]}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT })
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects
+      .toThrow()
   })
 
   it("should stream reasoning content before text deltas", async () => {

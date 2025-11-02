@@ -159,4 +159,14 @@ describe("doEmbed", () => {
       "custom-request-header": "request-header-value",
     })
   })
+
+  it("should throw TooManyEmbeddingValuesForCallError when values exceed model limit", async () => {
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    const many = Array.from({ length: 2049 }, (_, i) => `v${i}`)
+    await expect(
+      async () => await model.doEmbed({ values: many }),
+    ).rejects.toBeInstanceOf(TooManyEmbeddingValuesForCallError)
+  })
 })
