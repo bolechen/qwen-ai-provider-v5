@@ -2,8 +2,8 @@
 import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
 import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { QwenChatLanguageModel } from "./qwen-chat-language-model"
-import { createQwen } from "./qwen-provider"
+import { QwenChatLanguageModel } from "../qwen-chat-language-model"
+import { createQwen } from "../qwen-provider"
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: "user", content: [{ type: "text", text: "Hello" }] },

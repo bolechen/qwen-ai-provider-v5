@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createQwen } from "./qwen-provider"
+import { createQwen } from "../qwen-provider"
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3, 0.4, 0.5],
