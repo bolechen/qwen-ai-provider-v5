@@ -33,6 +33,22 @@ describe("convertToQwenCompletionPrompt", () => {
     expect(stopSequences).toEqual(["\nuser:"])
   })
 
+  it("supports system content provided as parts array (text-only)", () => {
+    const { prompt } = convertToQwenCompletionPrompt({
+      inputFormat: "messages",
+      // Cast to any to simulate a system message with parts array
+      prompt: [
+        { role: "system", content: [
+          { type: "text", text: "Be " },
+          { type: "text", text: "helpful" },
+        ] } as any,
+        { role: "user", content: [{ type: "text", text: "Hi" }] },
+      ],
+    })
+
+    expect(prompt).toBe("Be helpful\n\nuser:\nHi\n\nassistant:\n")
+  })
+
   it("uses custom user/assistant labels and updates stopSequences accordingly", () => {
     const { prompt, stopSequences } = convertToQwenCompletionPrompt({
       inputFormat: "messages",
