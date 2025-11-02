@@ -149,6 +149,74 @@ describe("tool calls", () => {
       },
     ])
   })
+
+  it("should throw for tool-result parts in assistant messages", () => {
+    expect(() =>
+      convertToQwenChatMessages([
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "tool-result",
+              toolCallId: "abc",
+              toolName: "calc",
+              output: { type: "text", value: "ok" },
+            } as any,
+          ],
+        },
+      ]),
+    ).toThrow()
+  })
+
+  it("should throw on unknown assistant content part types", () => {
+    expect(() =>
+      convertToQwenChatMessages([
+        {
+          role: "assistant",
+          content: [
+            // Force an unknown part type to hit the default branch
+            { type: "unknown", foo: 1 } as any,
+          ],
+        },
+      ]),
+    ).toThrow()
+  })
+
+  it("should convert tool role text outputs without JSON stringifying", () => {
+    const result = convertToQwenChatMessages([
+      {
+        role: "tool",
+        content: [
+          {
+            type: "tool-result",
+            toolCallId: "t1",
+            toolName: "echo",
+            output: { type: "text", value: "plain-text" },
+          },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "tool",
+        tool_call_id: "t1",
+        content: "plain-text",
+      },
+    ])
+  })
+
+  it("should throw on unsupported role values", () => {
+    expect(() =>
+      convertToQwenChatMessages([
+        {
+          // Cast to any to bypass TS type checks and hit runtime default
+          role: "bogus" as any,
+          content: [{ type: "text", text: "Hi" }],
+        },
+      ]),
+    ).toThrowError(/Unsupported role/)
+  })
 })
 
 describe("provider-specific metadata merging", () => {

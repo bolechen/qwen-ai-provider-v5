@@ -224,6 +224,10 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
           }
         }
         // Provider-defined tools not supported yet
+        warnings.push({
+          type: "unsupported-tool",
+          tool,
+        })
         return null
       })
       .filter((t): t is NonNullable<typeof t> => t !== null)
