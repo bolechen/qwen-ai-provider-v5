@@ -2,7 +2,6 @@
 import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
 import {
   convertReadableStreamToArray,
-  createTestServer,
 } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QwenCompletionLanguageModel } from "./qwen-completion-language-model"
@@ -97,7 +96,7 @@ describe("doGenerate", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
+      fetch: async (_url, init) => {
         // Capture request
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)
@@ -331,7 +330,7 @@ describe("doStream", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
+      fetch: async (_url, init) => {
         // Capture request
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)

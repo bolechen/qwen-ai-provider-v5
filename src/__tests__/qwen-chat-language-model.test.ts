@@ -100,7 +100,7 @@ describe("doGenerate", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
+      fetch: async (_url, init) => {
         // Capture request
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)
@@ -455,7 +455,7 @@ describe("doGenerate", () => {
   describe("response format", () => {
     it("should not send a response_format when response format is text", async () => {
       responseBody.choices[0].message.content = "{\"value\":\"Spark\"}"
-      const provider = createTestProvider()
+      createTestProvider()
       const model = new QwenChatLanguageModel(
         "qwen-plus",
         {},
@@ -464,7 +464,7 @@ describe("doGenerate", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           supportsStructuredOutputs: false,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -505,7 +505,7 @@ describe("doGenerate", () => {
 
     it("should forward json response format as \"json_object\" and omit schema when structuredOutputs are disabled", async () => {
       responseBody.choices[0].message.content = "{\"value\":\"Spark\"}"
-      const provider = createTestProvider()
+      createTestProvider()
       const model = new QwenChatLanguageModel(
         "qwen-plus",
         {},
@@ -514,7 +514,7 @@ describe("doGenerate", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           supportsStructuredOutputs: false,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -557,7 +557,7 @@ describe("doGenerate", () => {
 
     it("should forward json response format as \"json_schema\" and include schema when structuredOutputs are enabled", async () => {
       responseBody.choices[0].message.content = "{\"value\":\"Spark\"}"
-      const provider = createTestProvider()
+      createTestProvider()
       const model = new QwenChatLanguageModel(
         "qwen-plus",
         {},
@@ -566,7 +566,7 @@ describe("doGenerate", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           supportsStructuredOutputs: true,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -614,7 +614,7 @@ describe("doGenerate", () => {
 
     it("should set name & description with json schema when structuredOutputs are enabled", async () => {
       responseBody.choices[0].message.content = "{\"value\":\"Spark\"}"
-      const provider = createTestProvider()
+      createTestProvider()
       const model = new QwenChatLanguageModel(
         "qwen-plus",
         {},
@@ -623,7 +623,7 @@ describe("doGenerate", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           supportsStructuredOutputs: true,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -672,7 +672,7 @@ describe("doGenerate", () => {
 
     it("should allow for json without schema when structuredOutputs are enabled", async () => {
       responseBody.choices[0].message.content = "{\"value\":\"Spark\"}"
-      const provider = createTestProvider()
+      createTestProvider()
       const model = new QwenChatLanguageModel(
         "qwen-plus",
         {},
@@ -681,7 +681,7 @@ describe("doGenerate", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           supportsStructuredOutputs: true,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -763,7 +763,7 @@ describe("doStream", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
+      fetch: async (_url, init) => {
         // Capture request
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)
@@ -1288,12 +1288,10 @@ describe("doStream", () => {
 })
 
 describe("doStream simulated streaming", () => {
-  let requestBody: any
   let responseBody: any
   let responseHeaders: Record<string, string>
 
   beforeEach(() => {
-    requestBody = undefined
     responseBody = {
       id: "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
       object: "chat.completion",
@@ -1328,10 +1326,7 @@ describe("doStream simulated streaming", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
-        if (init?.body) {
-          requestBody = JSON.parse(init.body as string)
-        }
+      fetch: async (_url, _init) => {
         const bodyLength = JSON.stringify(responseBody).length
         return new Response(JSON.stringify(responseBody), {
           headers: {
@@ -1550,7 +1545,7 @@ describe("metadata extraction", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           metadataExtractor: testMetadataExtractor,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }
@@ -1606,7 +1601,7 @@ describe("metadata extraction", () => {
           url: () => "https://my.api.com/v1/chat/completions",
           headers: () => ({}),
           metadataExtractor: testMetadataExtractor,
-          fetch: async (url, init) => {
+          fetch: async (_url, init) => {
             if (init?.body) {
               requestBody = JSON.parse(init.body as string)
             }

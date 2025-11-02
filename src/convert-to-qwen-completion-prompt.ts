@@ -1,4 +1,6 @@
-import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
+import type {
+  LanguageModelV2Prompt,
+} from "@ai-sdk/provider"
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
@@ -49,27 +51,7 @@ export function convertToQwenCompletionPrompt({
 
   // If the first message is a system message, add its content first.
   if (prompt[0].role === "system") {
-    const systemContent: any = (prompt[0] as any).content
-    if (typeof systemContent === "string") {
-      text += `${systemContent}\n\n`
-    }
-    else if (Array.isArray(systemContent)) {
-      // Map parts to text (only text parts are supported here)
-      const systemText = systemContent
-        .map((part: any) => {
-          if (part?.type === "text") return part.text
-          // System message should not include non-text parts in completion prompts
-          throw new UnsupportedFunctionalityError({
-            functionality: `system message ${part?.type ?? "unknown"} content parts`,
-          })
-        })
-        .join("")
-      text += `${systemText}\n\n`
-    }
-    else {
-      // Fallback to string interpolation
-      text += `${String(systemContent)}\n\n`
-    }
+    text += `${prompt[0].content}\n\n`
     prompt = prompt.slice(1) // Remove the system message after processing.
   }
 
@@ -100,9 +82,7 @@ export function convertToQwenCompletionPrompt({
               }
               default: {
                 const _exhaustiveCheck: never = part
-                throw new Error(
-                  `Unsupported content part type: ${_exhaustiveCheck}`,
-                )
+                throw new Error(`Unsupported content part type: ${_exhaustiveCheck}`)
               }
             }
           })
@@ -136,9 +116,7 @@ export function convertToQwenCompletionPrompt({
               }
               default: {
                 const _exhaustiveCheck: never = part
-                throw new Error(
-                  `Unsupported content part type: ${_exhaustiveCheck}`,
-                )
+                throw new Error(`Unsupported content part type: ${_exhaustiveCheck}`)
               }
             }
           })

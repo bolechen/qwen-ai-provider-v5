@@ -1,4 +1,3 @@
-import type { EmbeddingModelV2Embedding } from "@ai-sdk/provider"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createQwen } from "./qwen-provider"
 
@@ -42,7 +41,7 @@ describe("doEmbed", () => {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (url, init) => {
+      fetch: async (_url, init) => {
         // Capture request
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)
