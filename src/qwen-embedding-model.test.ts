@@ -1,69 +1,162 @@
-import { createTestServer } from "@ai-sdk/provider-utils/test"
-import { describe, expect, it, vi } from "vitest"
+import type { EmbeddingModelV2Embedding } from "@ai-sdk/provider"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createQwen } from "./qwen-provider"
+
+const dummyEmbeddings = [
+  [0.1, 0.2, 0.3, 0.4, 0.5],
+  [0.6, 0.7, 0.8, 0.9, 1.0],
+]
 
 vi.stubEnv("DASHSCOPE_API_KEY", "test-api-key-123")
 
-const server = createTestServer({
-  "https://my.api.com/v1/embeddings": {
-    response: {
-      type: "json-value",
-      body: {
-        data: [
-          { embedding: [0.1, 0.2, 0.3] },
-          { embedding: [0.4, 0.5, 0.6] },
-        ],
-        usage: { prompt_tokens: 10 },
-      },
-    },
-  },
-})
-
-const provider = createQwen({
-  baseURL: "https://my.api.com/v1/",
-  headers: {
-    Authorization: `Bearer test-api-key`,
-  },
-  fetch: async (url, init) => {
-    const response = server.urls["https://my.api.com/v1/embeddings"].response
-    if (response && response.type === "json-value") {
-      return new Response(JSON.stringify(response.body), {
-        headers: response.headers || {},
-      })
-    }
-    throw new Error("Invalid response type")
-  },
-})
-
-const model = provider.textEmbeddingModel("text-embedding-v1")
+const testValues = ["sunny day at the beach", "rainy day in the city"]
 
 describe("doEmbed", () => {
-  it("should return embeddings", async () => {
-    const { embeddings } = await model.doEmbed({
-      values: ["test1", "test2"],
-    })
+  let requestBody: any
+  let requestHeaders: Record<string, string>
+  let responseBody: any
+  let responseHeaders: Record<string, string>
 
-    expect(embeddings).toEqual([
-      [0.1, 0.2, 0.3],
-      [0.4, 0.5, 0.6],
-    ])
+  beforeEach(() => {
+    requestBody = undefined
+    requestHeaders = {}
+    responseBody = {
+      object: "list",
+      data: dummyEmbeddings.map((embedding, i) => ({
+        object: "embedding",
+        index: i,
+        embedding,
+      })),
+      model: "text-embedding-3-large",
+      usage: { prompt_tokens: 8, total_tokens: 8 },
+    }
+    responseHeaders = {
+      "content-type": "application/json",
+    }
   })
 
-  it("should return usage information", async () => {
-    const { usage } = await model.doEmbed({
-      values: ["test"],
-    })
+  function createTestProvider(overrides?: any) {
+    return createQwen({
+      baseURL: "https://my.api.com/v1/",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      ...overrides,
+      fetch: async (url, init) => {
+        // Capture request
+        if (init?.body) {
+          requestBody = JSON.parse(init.body as string)
+        }
+        if (init?.headers) {
+          requestHeaders = init.headers as Record<string, string>
+        }
 
-    expect(usage).toEqual({ tokens: 10 })
+        // Return response
+        const bodyLength = JSON.stringify(responseBody).length
+        return new Response(JSON.stringify(responseBody), {
+          headers: {
+            ...responseHeaders,
+            "content-length": bodyLength.toString(),
+          },
+        })
+      },
+    })
+  }
+
+  it("should extract embedding", async () => {
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    const { embeddings } = await model.doEmbed({ values: testValues })
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings)
   })
 
-  it("should include response headers", async () => {
-    const { response } = await model.doEmbed({
-      values: ["test"],
+  it("should expose the raw response headers", async () => {
+    responseHeaders = {
+      ...responseHeaders,
+      "test-header": "test-value",
+    }
+
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    const { response } = await model.doEmbed({ values: testValues })
+
+    expect(response?.headers).toMatchObject({
+      "content-type": "application/json",
+      "test-header": "test-value",
+    })
+  })
+
+  it("should extract usage", async () => {
+    responseBody = {
+      object: "list",
+      data: dummyEmbeddings.map((embedding, i) => ({
+        object: "embedding",
+        index: i,
+        embedding,
+      })),
+      model: "text-embedding-3-large",
+      usage: { prompt_tokens: 20, total_tokens: 20 },
+    }
+
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    const { usage } = await model.doEmbed({ values: testValues })
+
+    expect(usage).toStrictEqual({ tokens: 20 })
+  })
+
+  it("should pass the model and the values", async () => {
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    await model.doEmbed({ values: testValues })
+
+    expect(requestBody).toStrictEqual({
+      model: "text-embedding-3-large",
+      input: testValues,
+      encoding_format: "float",
+    })
+  })
+
+  it("should pass the dimensions setting", async () => {
+    const provider = createTestProvider()
+
+    await provider
+      .textEmbeddingModel("text-embedding-3-large", { dimensions: 64 })
+      .doEmbed({ values: testValues })
+
+    expect(requestBody).toStrictEqual({
+      model: "text-embedding-3-large",
+      input: testValues,
+      encoding_format: "float",
+      dimensions: 64,
+    })
+  })
+
+  it("should pass headers", async () => {
+    const provider = createTestProvider({
+      headers: {
+        "Authorization": `Bearer test-api-key`,
+        "Custom-Provider-Header": "provider-header-value",
+      },
     })
 
-    expect(response).toHaveProperty("headers")
+    await provider.textEmbeddingModel("text-embedding-3-large").doEmbed({
+      values: testValues,
+      headers: {
+        "Custom-Request-Header": "request-header-value",
+      },
+    })
+
+    expect(requestHeaders).toMatchObject({
+      "authorization": "Bearer test-api-key",
+      "content-type": "application/json",
+      "custom-provider-header": "provider-header-value",
+      "custom-request-header": "request-header-value",
+    })
   })
 })
-
-// NOTE: Full test suite needs migration to V2 API
