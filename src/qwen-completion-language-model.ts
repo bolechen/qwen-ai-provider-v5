@@ -1,11 +1,11 @@
 import type {
   APICallError,
   LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  LanguageModelV2Content,
-  LanguageModelV2CallOptions,
 } from "@ai-sdk/provider"
 import type {
   FetchFunction,
@@ -16,12 +16,8 @@ import type {
   QwenCompletionModelId,
   QwenCompletionSettings,
 } from "./qwen-completion-settings"
-import type {
-  QwenErrorStructure,
-} from "./qwen-error"
-import {
-  UnsupportedFunctionalityError,
-} from "@ai-sdk/provider"
+import type { QwenErrorStructure } from "./qwen-error"
+import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -34,9 +30,7 @@ import { z } from "zod"
 import { convertToQwenCompletionPrompt } from "./convert-to-qwen-completion-prompt"
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
-import {
-  defaultQwenErrorStructure,
-} from "./qwen-error"
+import { defaultQwenErrorStructure } from "./qwen-error"
 
 interface QwenCompletionConfig {
   provider: string
@@ -71,8 +65,7 @@ const QwenCompletionResponseSchema = z.object({
  * @remarks
  * Implements the LanguageModelV2 interface and handles regular, streaming completions.
  */
-export class QwenCompletionLanguageModel
-implements LanguageModelV2 {
+export class QwenCompletionLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = "v2"
   readonly supportedUrls: Record<string, RegExp[]> = {}
 
@@ -100,8 +93,7 @@ implements LanguageModelV2 {
     this.config = config
 
     // Initialize error handling schema and response handler.
-    const errorStructure
-        = config.errorStructure ?? defaultQwenErrorStructure
+    const errorStructure = config.errorStructure ?? defaultQwenErrorStructure
     this.chunkSchema = createQwenCompletionChunkSchema(
       errorStructure.errorSchema,
     )
@@ -120,19 +112,19 @@ implements LanguageModelV2 {
    * Generates the arguments for invoking the LanguageModelV2 doGenerate method.
    */
   private getArgs({
-      prompt,
-      maxOutputTokens,
-      temperature,
-      topP,
-      topK,
-      frequencyPenalty,
-      presencePenalty,
-      stopSequences: userStopSequences,
-      responseFormat,
-      seed,
-      providerOptions,
-      tools,
-      toolChoice,
+    prompt,
+    maxOutputTokens,
+    temperature,
+    topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    stopSequences: userStopSequences,
+    responseFormat,
+    seed,
+    providerOptions,
+    tools,
+    toolChoice,
   }: LanguageModelV2CallOptions) {
     const warnings: LanguageModelV2CallWarning[] = []
 
@@ -167,7 +159,7 @@ implements LanguageModelV2 {
 
     // Convert prompt to Qwen-specific prompt info.
     const { prompt: completionPrompt, stopSequences }
-        = convertToQwenCompletionPrompt({ prompt, inputFormat: "prompt" })
+      = convertToQwenCompletionPrompt({ prompt, inputFormat: "prompt" })
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])]
 
@@ -205,7 +197,11 @@ implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
     const { args, warnings } = this.getArgs(options)
 
-    const { responseHeaders, value: response, rawValue: parsedBody } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: parsedBody,
+    } = await postJsonToApi({
       url: this.config.url({
         path: "/completions",
         modelId: this.modelId,
@@ -227,7 +223,7 @@ implements LanguageModelV2 {
 
     if (choice.text) {
       content.push({
-        type: 'text',
+        type: "text",
         text: choice.text,
       })
     }
@@ -238,7 +234,9 @@ implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
-        totalTokens: (response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0) || undefined,
+        totalTokens:
+          (response.usage?.prompt_tokens ?? 0)
+          + (response.usage?.completion_tokens ?? 0) || undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -337,7 +335,9 @@ implements LanguageModelV2 {
               usage = {
                 inputTokens: value.usage.prompt_tokens,
                 outputTokens: value.usage.completion_tokens,
-                totalTokens: (value.usage.prompt_tokens ?? 0) + (value.usage.completion_tokens ?? 0) || undefined,
+                totalTokens:
+                  (value.usage.prompt_tokens ?? 0)
+                  + (value.usage.completion_tokens ?? 0) || undefined,
               }
             }
 
@@ -387,9 +387,9 @@ implements LanguageModelV2 {
  * @param errorSchema - Schema to validate error objects.
  * @returns A union schema for a valid chunk or an error.
  */
-function createQwenCompletionChunkSchema<
-  ERROR_SCHEMA extends z.ZodType,
->(errorSchema: ERROR_SCHEMA) {
+function createQwenCompletionChunkSchema<ERROR_SCHEMA extends z.ZodType>(
+  errorSchema: ERROR_SCHEMA,
+) {
   return z.union([
     z.object({
       id: z.string().nullish(),

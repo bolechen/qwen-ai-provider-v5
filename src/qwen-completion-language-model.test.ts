@@ -1,8 +1,6 @@
 /* eslint-disable dot-notation */
 import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
-import {
-  convertReadableStreamToArray,
-} from "@ai-sdk/provider-utils/test"
+import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QwenCompletionLanguageModel } from "./qwen-completion-language-model"
 import { createQwen } from "./qwen-provider"
@@ -133,7 +131,11 @@ describe("doGenerate", () => {
   })
 
   it("should extract usage with V2 field names", async () => {
-    responseBody.usage = { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 }
+    responseBody.usage = {
+      prompt_tokens: 20,
+      total_tokens: 25,
+      completion_tokens: 5,
+    }
     const provider = createTestProvider()
     const model = provider.completion("qwen-plus")
 
@@ -373,9 +375,15 @@ describe("doStream", () => {
       timestamp: new Date("2024-03-25T10:44:00.000Z"),
       type: "response-metadata",
     })
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "Hello")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === ", ")).toHaveLength(1)
-    expect(parts.filter(p => p.type === "text-delta" && p.delta === "World!")).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === "Hello"),
+    ).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === ", "),
+    ).toHaveLength(1)
+    expect(
+      parts.filter(p => p.type === "text-delta" && p.delta === "World!"),
+    ).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
       finishReason: "stop",

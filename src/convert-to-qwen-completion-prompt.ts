@@ -1,6 +1,4 @@
-import type {
-  LanguageModelV2Prompt,
-} from "@ai-sdk/provider"
+import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
@@ -82,7 +80,9 @@ export function convertToQwenCompletionPrompt({
               }
               default: {
                 const _exhaustiveCheck: never = part
-                throw new Error(`Unsupported content part type: ${_exhaustiveCheck}`)
+                throw new Error(
+                  `Unsupported content part type: ${_exhaustiveCheck}`,
+                )
               }
             }
           })
@@ -116,7 +116,9 @@ export function convertToQwenCompletionPrompt({
               }
               default: {
                 const _exhaustiveCheck: never = part
-                throw new Error(`Unsupported content part type: ${_exhaustiveCheck}`)
+                throw new Error(
+                  `Unsupported content part type: ${_exhaustiveCheck}`,
+                )
               }
             }
           })

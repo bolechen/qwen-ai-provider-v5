@@ -70,6 +70,34 @@ describe("user messages", () => {
       },
     ])
   })
+
+  it("should preserve pre-formed data URLs for image parts", async () => {
+    const dataUrl = "data:image/png;base64,AAECAw=="
+    const result = convertToQwenChatMessages([
+      {
+        role: "user",
+        content: [
+          {
+            type: "file",
+            data: dataUrl,
+            mediaType: "image/png",
+          },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: dataUrl },
+          },
+        ],
+      },
+    ])
+  })
 })
 
 describe("tool calls", () => {

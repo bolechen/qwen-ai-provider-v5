@@ -1,7 +1,4 @@
-import type {
-  EmbeddingModelV2,
-  LanguageModelV2,
-} from "@ai-sdk/provider"
+import type { EmbeddingModelV2, LanguageModelV2 } from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
 import type {

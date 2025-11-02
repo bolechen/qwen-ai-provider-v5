@@ -1,19 +1,11 @@
-import type {
-  EmbeddingModelV2,
-} from "@ai-sdk/provider"
-import type {
-  FetchFunction,
-} from "@ai-sdk/provider-utils"
+import type { EmbeddingModelV2 } from "@ai-sdk/provider"
+import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
 } from "./qwen-embedding-settings"
-import type {
-  QwenErrorStructure,
-} from "./qwen-error"
-import {
-  TooManyEmbeddingValuesForCallError,
-} from "@ai-sdk/provider"
+import type { QwenErrorStructure } from "./qwen-error"
+import { TooManyEmbeddingValuesForCallError } from "@ai-sdk/provider"
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -21,9 +13,7 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
-import {
-  defaultQwenErrorStructure,
-} from "./qwen-error"
+import { defaultQwenErrorStructure } from "./qwen-error"
 
 interface QwenEmbeddingConfig {
   /**
@@ -50,8 +40,7 @@ const qwenTextEmbeddingResponseSchema = z.object({
   usage: z.object({ prompt_tokens: z.number() }).nullish(),
 })
 
-export class QwenEmbeddingModel
-implements EmbeddingModelV2<string> {
+export class QwenEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = "v2"
   readonly modelId: QwenEmbeddingModelId
 
@@ -94,12 +83,12 @@ implements EmbeddingModelV2<string> {
    */
   async doEmbed({
     values,
-      headers,
-      abortSignal,
-      providerOptions,
+    headers,
+    abortSignal,
+    providerOptions,
   }: Parameters<EmbeddingModelV2<string>["doEmbed"]>[0]): Promise<
-      Awaited<ReturnType<EmbeddingModelV2<string>["doEmbed"]>>
-    > {
+    Awaited<ReturnType<EmbeddingModelV2<string>["doEmbed"]>>
+  > {
     // Validate that number of embeddings does not exceed maximum allowed.
     const maxEmbeddings = this.maxEmbeddingsPerCall ?? Number.POSITIVE_INFINITY
     if (values.length > maxEmbeddings) {

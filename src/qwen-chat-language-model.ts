@@ -12,17 +12,10 @@ import type {
   ParseResult,
   ResponseHandler,
 } from "@ai-sdk/provider-utils"
-import type {
-  QwenChatModelId,
-  QwenChatSettings,
-} from "./qwen-chat-settings"
-import type {
-  QwenErrorStructure,
-} from "./qwen-error"
+import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
+import type { QwenErrorStructure } from "./qwen-error"
 import type { MetadataExtractor } from "./qwen-metadata-extractor"
-import {
-  InvalidResponseDataError,
-} from "@ai-sdk/provider"
+import { InvalidResponseDataError } from "@ai-sdk/provider"
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -36,9 +29,7 @@ import { z } from "zod"
 import { convertToQwenChatMessages } from "./convert-to-qwen-chat-messages"
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
-import {
-  defaultQwenErrorStructure,
-} from "./qwen-error"
+import { defaultQwenErrorStructure } from "./qwen-error"
 
 /**
  * Configuration for the Qwen Chat Language Model.
@@ -140,11 +131,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
     this.config = config
 
     // Initialize error handling using provided or default error structure.
-    const errorStructure
-        = config.errorStructure ?? defaultQwenErrorStructure
-    this.chunkSchema = createQwenChatChunkSchema(
-      errorStructure.errorSchema,
-    )
+    const errorStructure = config.errorStructure ?? defaultQwenErrorStructure
+    this.chunkSchema = createQwenChatChunkSchema(errorStructure.errorSchema)
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure)
 
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false
@@ -173,18 +161,18 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
    */
   private getArgs({
     prompt,
-      maxOutputTokens,
-      temperature,
-      topP,
-      topK,
-      frequencyPenalty,
-      presencePenalty,
-      providerOptions,
-      stopSequences,
-      responseFormat,
-      seed,
-      tools,
-      toolChoice,
+    maxOutputTokens,
+    temperature,
+    topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
+    providerOptions,
+    stopSequences,
+    responseFormat,
+    seed,
+    tools,
+    toolChoice,
   }: LanguageModelV2CallOptions) {
     const warnings: LanguageModelV2CallWarning[] = []
 
@@ -205,25 +193,27 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
         type: "unsupported-setting",
         setting: "responseFormat",
         details:
-            "JSON response format schema is only supported with structuredOutputs",
+          "JSON response format schema is only supported with structuredOutputs",
       })
     }
 
     // Convert V2 tools to OpenAI format
-    const openaiTools = tools?.map((tool) => {
-      if (tool.type === "function") {
-        return {
-          type: "function" as const,
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.inputSchema,
-          },
+    const openaiTools = tools
+      ?.map((tool) => {
+        if (tool.type === "function") {
+          return {
+            type: "function" as const,
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.inputSchema,
+            },
+          }
         }
-      }
-      // Provider-defined tools not supported yet
-      return null
-    }).filter((t): t is NonNullable<typeof t> => t !== null)
+        // Provider-defined tools not supported yet
+        return null
+      })
+      .filter((t): t is NonNullable<typeof t> => t !== null)
 
     // Convert V2 tool choice to OpenAI format
     let openaiToolChoice: any
@@ -259,19 +249,19 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       response_format:
-          responseFormat?.type === "json"
-            ? this.supportsStructuredOutputs === true
-            && responseFormat.schema != null
-              ? {
-                  type: "json_schema",
-                  json_schema: {
-                    schema: responseFormat.schema,
-                    name: responseFormat.name ?? "response",
-                    description: responseFormat.description,
-                  },
-                }
-              : { type: "json_object" }
-            : undefined,
+        responseFormat?.type === "json"
+          ? this.supportsStructuredOutputs === true
+          && responseFormat.schema != null
+            ? {
+                type: "json_schema",
+                json_schema: {
+                  schema: responseFormat.schema,
+                  name: responseFormat.name ?? "response",
+                  description: responseFormat.description,
+                },
+              }
+            : { type: "json_object" }
+          : undefined,
 
       stop: stopSequences,
       seed,
@@ -351,7 +341,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
           type: "tool-call",
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
-          input: toolCall.function.arguments!, // V2 uses string for input
+          input: JSON.parse(toolCall.function.arguments!),
         })
       }
     }
@@ -363,7 +353,9 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
         outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens: (responseBody.usage?.prompt_tokens ?? 0) + (responseBody.usage?.completion_tokens ?? 0) || undefined,
+        totalTokens:
+          (responseBody.usage?.prompt_tokens ?? 0)
+          + (responseBody.usage?.completion_tokens ?? 0) || undefined,
       },
       ...(providerMetadata && { providerMetadata }),
       request: { body },
@@ -409,7 +401,11 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
             if (part.type === "reasoning") {
               const id = generateId()
               controller.enqueue({ type: "reasoning-start", id })
-              controller.enqueue({ type: "reasoning-delta", id, delta: part.text })
+              controller.enqueue({
+                type: "reasoning-delta",
+                id,
+                delta: part.text,
+              })
               controller.enqueue({ type: "reasoning-end", id })
             }
             else if (part.type === "text") {
@@ -440,7 +436,9 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       return {
         stream: simulatedStream,
         request: result.request,
-        response: result.response ? { headers: result.response.headers } : undefined,
+        response: result.response
+          ? { headers: result.response.headers }
+          : undefined,
       }
     }
 
@@ -455,7 +453,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
     }
 
     const body = JSON.stringify(requestBody)
-    const metadataExtractor = this.config.metadataExtractor?.createStreamExtractor()
+    const metadataExtractor
+      = this.config.metadataExtractor?.createStreamExtractor()
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -537,7 +536,9 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
               usage = {
                 inputTokens: value.usage.prompt_tokens,
                 outputTokens: value.usage.completion_tokens,
-                totalTokens: (value.usage.prompt_tokens ?? 0) + (value.usage.completion_tokens ?? 0) || undefined,
+                totalTokens:
+                  (value.usage.prompt_tokens ?? 0)
+                  + (value.usage.completion_tokens ?? 0) || undefined,
               }
             }
 
@@ -557,7 +558,10 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning_content != null) {
               if (!reasoningId) {
                 reasoningId = generateId()
-                controller.enqueue({ type: "reasoning-start", id: reasoningId })
+                controller.enqueue({
+                  type: "reasoning-start",
+                  id: reasoningId,
+                })
               }
               controller.enqueue({
                 type: "reasoning-delta",
@@ -639,7 +643,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
                       type: "tool-call",
                       toolCallId: toolCall.id,
                       toolName: toolCall.name,
-                      input: toolCall.arguments,
+                      input: JSON.parse(toolCall.arguments),
                     })
                     toolCall.hasFinished = true
                   }
@@ -672,7 +676,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
                     type: "tool-call",
                     toolCallId: toolCall.id,
                     toolName: toolCall.name,
-                    input: toolCall.arguments,
+                    input: JSON.parse(toolCall.arguments),
                   })
                   toolCall.hasFinished = true
                 }
@@ -708,7 +712,9 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-function createQwenChatChunkSchema<ERROR_SCHEMA extends z.ZodType>(errorSchema: ERROR_SCHEMA) {
+function createQwenChatChunkSchema<ERROR_SCHEMA extends z.ZodType>(
+  errorSchema: ERROR_SCHEMA,
+) {
   return z.union([
     z.object({
       id: z.string().nullish(),
