@@ -95,6 +95,11 @@ npm install qwen-ai-provider
 yarn add qwen-ai-provider
 ```
 
+### Zod Compatibility
+- Supports `zod` versions: `^3.25.76` or `^4.1.8`.
+- This matches the peer dependency range required by `@ai-sdk/provider-utils@3.x` to ensure installs resolve cleanly.
+- The provider uses only APIs compatible with both ranges.
+
 ## Provider Instance
 
 You can import the default provider instance `qwen` from `qwen-ai-provider`:
