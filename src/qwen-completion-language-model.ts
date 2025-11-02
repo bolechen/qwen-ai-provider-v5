@@ -307,8 +307,9 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
 
             const value = chunk.value
 
-            if ("error" in value) {
-              controller.enqueue({ type: "error", error: value.error })
+            // Handle provider error objects streamed as chunks
+            if ((value as any)?.object === "error") {
+              controller.enqueue({ type: "error", error: (value as any).message })
               return
             }
 

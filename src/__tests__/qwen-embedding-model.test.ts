@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createQwen } from "../qwen-provider"
+import { TooManyEmbeddingValuesForCallError } from "@ai-sdk/provider"
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3, 0.4, 0.5],
@@ -157,5 +158,15 @@ describe("doEmbed", () => {
       "custom-provider-header": "provider-header-value",
       "custom-request-header": "request-header-value",
     })
+  })
+
+  it("should throw TooManyEmbeddingValuesForCallError when values exceed model limit", async () => {
+    const provider = createTestProvider()
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+
+    const many = Array.from({ length: 2049 }, (_, i) => `v${i}`)
+    await expect(
+      async () => await model.doEmbed({ values: many }),
+    ).rejects.toBeInstanceOf(TooManyEmbeddingValuesForCallError)
   })
 })

@@ -525,8 +525,9 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
 
             metadataExtractor?.processChunk(chunk.rawValue)
 
-            if ("error" in value) {
-              controller.enqueue({ type: "error", error: value.error.message })
+            // Handle provider error objects streamed as chunks
+            if ((value as any)?.object === "error") {
+              controller.enqueue({ type: "error", error: (value as any).message })
               return
             }
 
