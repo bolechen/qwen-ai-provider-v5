@@ -1,9 +1,11 @@
 import type {
   APICallError,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Content,
+  LanguageModelV2CallOptions,
 } from "@ai-sdk/provider"
 import type {
   FetchFunction,
@@ -66,12 +68,12 @@ const QwenCompletionResponseSchema = z.object({
  * A language model implementation for Qwen completions.
  *
  * @remarks
- * Implements the LanguageModelV1 interface and handles regular, streaming completions.
+ * Implements the LanguageModelV2 interface and handles regular, streaming completions.
  */
 export class QwenCompletionLanguageModel
-implements LanguageModelV1 {
-  readonly specificationVersion = "v1"
-  readonly defaultObjectGenerationMode = undefined
+implements LanguageModelV2 {
+  readonly specificationVersion = "v2"
+  readonly supportedUrls: Record<string, RegExp[]> = {}
 
   readonly modelId: QwenCompletionModelId
   readonly settings: QwenCompletionSettings
