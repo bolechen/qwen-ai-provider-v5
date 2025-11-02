@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { convertToQwenChatMessages } from "./convert-to-qwen-chat-messages"
 
 vi.stubEnv("DASHSCOPE_API_KEY", "test-api-key-123")

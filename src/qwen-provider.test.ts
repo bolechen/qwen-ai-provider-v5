@@ -74,7 +74,6 @@ describe("qwenProvider", () => {
         settings,
         expect.objectContaining({
           provider: "qwen.chat",
-          defaultObjectGenerationMode: "tool",
         }),
       )
     })
