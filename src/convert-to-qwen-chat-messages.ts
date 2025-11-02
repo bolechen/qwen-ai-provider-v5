@@ -171,10 +171,22 @@ export function convertToQwenChatMessages(
         // Process tool responses by converting output to JSON string.
         for (const toolResponse of content) {
           const toolResponseOptions = getQwenOptions(toolResponse)
+          const output = toolResponse.output
+
+          // Extract the value from the V2 output format
+          let toolContent: string
+          if (output.type === "text" || output.type === "error-text") {
+            toolContent = output.value
+          }
+          else {
+            // json or error-json
+            toolContent = JSON.stringify(output.value)
+          }
+
           messages.push({
             role: "tool",
             tool_call_id: toolResponse.toolCallId,
-            content: JSON.stringify(toolResponse.output),
+            content: toolContent,
             ...toolResponseOptions,
           })
         }
