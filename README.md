@@ -1,5 +1,11 @@
-# Qwen AI Provider for Vercel AI SDK  
+# Qwen AI Provider for Vercel AI SDK v5
 [![Qwen Supported](https://img.shields.io/badge/Vercel_AI_SDK-Qwen_Provider-blue)](https://sdk.vercel.ai/providers/community-providers/qwen)
+[![npm version](https://img.shields.io/npm/v/qwen-ai-provider-v5.svg)](https://www.npmjs.com/package/qwen-ai-provider-v5)
+
+> **Important Notice**: This package (`qwen-ai-provider-v5`) is specifically designed for **AI SDK v5** (specification v2).
+>
+> - For AI SDK v4 users, please continue using the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package.
+> - This is a community-maintained fork focused on v5 compatibility. Special thanks to the [original author](https://github.com/Younis-Ahmed/qwen-ai-provider) for their excellent work.
 
 ## Table of Contents
 - [Qwen AI Provider for Vercel AI SDK](#qwen-ai-provider-for-vercel-ai-sdk)
@@ -11,11 +17,15 @@
 - [Embedding Models](#embedding-models)
 - [Examples](#examples)
 
-[younis-ahmed/qwen-vercel-ai-sdk-provider](https://github.com/younis-ahmed/qwen-ai-provider) enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK**. This community-maintained provider supports:  
+This package enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK v5**. Key features:
 
-- Full compatibility with Vercel AI SDK's `generateText`, `streamText`, and tool-calling functions.
-- 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, and `qwen2.5 series`.
-- Customizable API configurations for enterprise deployments.
+- Full compatibility with AI SDK v5's `generateText`, `streamText`, `generateObject`, and tool-calling functions
+- Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, and `qwen2.5 series`
+- Customizable API configurations for enterprise deployments
+- Complete specification v2 implementation with content arrays, improved streaming, and enhanced tool support
+
+### Original Repository
+This is a maintained fork of the original [qwen-ai-provider](https://github.com/Younis-Ahmed/qwen-ai-provider) repository, updated for AI SDK v5 compatibility. We deeply appreciate the original author's contribution to the community.
 
 ---
 
@@ -78,35 +88,42 @@ DASHSCOPE_API_KEY=""
 
 ## Setup
 
-The Qwen provider is available in the `qwen-ai-provider` module. You can install it with:
+The Qwen provider for AI SDK v5 is available in the `qwen-ai-provider-v5` module. You can install it with:
 
 ```bash
 # For pnpm
-pnpm add qwen-ai-provider
+pnpm add qwen-ai-provider-v5
 ```
 
 ```bash
 # For npm
-npm install qwen-ai-provider
+npm install qwen-ai-provider-v5
 ```
 
 ```bash
 # For yarn
-yarn add qwen-ai-provider
+yarn add qwen-ai-provider-v5
 ```
+
+> **Note**: This package requires AI SDK v5. If you're using AI SDK v4, please use the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package instead.
+
+### Zod Compatibility
+- Supports `zod` versions: `^3.25.76` or `^4.1.8`.
+- This matches the peer dependency range required by `@ai-sdk/provider-utils@3.x` to ensure installs resolve cleanly.
+- The provider uses only APIs compatible with both ranges.
 
 ## Provider Instance
 
-You can import the default provider instance `qwen` from `qwen-ai-provider`:
+You can import the default provider instance `qwen` from `qwen-ai-provider-v5`:
 
 ```ts
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 ```
 
-If you need a customized setup, you can import `createQwen` from `qwen-ai-provider` and create a provider instance with your settings:
+If you need a customized setup, you can import `createQwen` from `qwen-ai-provider-v5` and create a provider instance with your settings:
 
 ```ts
-import { createQwen } from 'qwen-ai-provider';
+import { createQwen } from 'qwen-ai-provider-v5';
 
 const qwen = createQwen({
   // optional settings, e.g.
@@ -197,8 +214,8 @@ Below are comprehensive examples demonstrating various AI functionalities:
 // Import the text generation function from the AI package
 import { generateText } from "ai"
 
-// Import the qwen function from qwen-ai-provider to select the AI model
-import { qwen } from "qwen-ai-provider"
+// Import the qwen function from qwen-ai-provider-v5 to select the AI model
+import { qwen } from "qwen-ai-provider-v5"
 
 // Use generateText with a specific model and prompt to generate AI text
 // The qwen function selects the 'qwen-plus' model
@@ -215,7 +232,7 @@ console.log(result)
 ### generate-text-image-prompt.ts
 ```typescript
 import { generateText } from 'ai';
-import { qwen } from 'qwen-ai-provider'
+import { qwen } from 'qwen-ai-provider-v5'
 
 const result = await generateText({
   model: qwen('qwen-plus'),
@@ -245,7 +262,7 @@ console.log(result);
 ### generate-text-chat-prompt.ts
 ```typescript
 import { generateText } from 'ai';
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 
 const result = await generateText({
   model: qwen('qwen-plus'),
@@ -273,7 +290,7 @@ console.log(result.text);
 ### generate-obj.ts
 ```typescript
 import { generateObject } from 'ai';
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { z } from 'zod';
 
 const result = await generateObject({
@@ -298,7 +315,7 @@ console.log(JSON.stringify(result.object.recipe, null, 2));
 
 ### generate-obj-reasoning-mdl.ts
 ```typescript
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { generateObject, generateText } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
@@ -334,7 +351,7 @@ main().catch(console.error);
 
 ### embed-text.ts
 ```typescript
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { embed } from 'ai';
 import 'dotenv/config';
 
@@ -353,7 +370,7 @@ main().catch(console.error);
 
 ### embed-text-batch.ts
 ```typescript
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { embedMany } from 'ai';
 import 'dotenv/config';
 
@@ -377,7 +394,7 @@ main().catch(console.error);
 ### call-tools.ts
 ```typescript
 import { generateText, tool } from 'ai';
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { z } from 'zod';
 
 const result = await generateText({
@@ -404,7 +421,7 @@ const result = await generateText({
 
 ### record-token-usage-after-streaming-obj.ts
 ```typescript
-import { qwen } from 'qwen-ai-provider';
+import { qwen } from 'qwen-ai-provider-v5';
 import { streamObject } from 'ai';
 import { z } from 'zod';
 
