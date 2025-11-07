@@ -1,4 +1,80 @@
-# qwen-ai-provider
+# qwen-ai-provider-v5
+
+## 1.0.1
+
+### Patch Changes
+
+- **Package Metadata**: Updated package information for npm publication
+  - Changed package name to `qwen-ai-provider-v5`
+  - Updated repository URL to https://github.com/bolechen/qwen-ai-provider
+  - Updated author information
+
+- **Documentation**: Enhanced README with AI SDK v5 focus
+  - Added prominent notice about AI SDK v5 requirement
+  - Linked to original `qwen-ai-provider` package for v4 users
+  - Updated all code examples to use `qwen-ai-provider-v5` imports
+  - Added acknowledgment to original author
+
+## 1.0.0
+
+### Major Changes
+
+- **🎉 AI SDK v5 Migration** - Complete migration to Vercel AI SDK v5 (specification v2)
+  - Migrated `QwenChatLanguageModel` to `LanguageModelV2` interface
+  - Migrated `QwenCompletionLanguageModel` to `LanguageModelV2` interface
+  - Migrated `QwenEmbeddingModel` to `EmbeddingModelV2` interface
+  - Updated `QwenProvider` interface to v2 specifications
+
+- **Breaking Changes**:
+  - Updated to `@ai-sdk/provider@^2.0.0` (was ^1.0.7)
+  - Updated to `@ai-sdk/provider-utils@^3.0.0` (was ^2.1.6)
+  - Changed response format from `{text, toolCalls}` to `{content: []}` array
+  - Usage fields now use `inputTokens`/`outputTokens` instead of `promptTokens`/`completionTokens`
+  - Parameters changed: `maxOutputTokens` instead of `maxTokens`, `providerOptions` instead of `providerMetadata`
+  - Removed `mode` parameter; tools and toolChoice are now direct parameters
+  - Stream parts updated to V2 format with `text-start`/`text-delta`/`text-end` pattern
+
+### Minor Changes
+
+- **Enhanced Tool Handling**:
+  - Improved tool call error handling and validation
+  - Better tool response conversion in chat messages
+  - Enhanced tool streaming support with proper delta handling
+
+- **Improved Error Handling**:
+  - Better error messages for QwenChat and QwenCompletion models
+  - Refined system message content part conversion
+  - Improved handling of unsupported content types
+
+### Patch Changes
+
+- **Testing**:
+  - Reorganized test files into `__tests__` directory
+  - Migrated all 95+ tests to V2 API format
+  - Implemented custom fetch mocking pattern to avoid DataCloneError
+  - Added MSW (Mock Service Worker) dependency for testing
+  - Complete test coverage maintained: chat model (44 tests), completion model (22 tests), embedding model (6 tests)
+
+- **Zod Compatibility**:
+  - Added support for Zod v4 alongside v3
+  - Peer dependency: `zod@^3.25.76 || ^4.1.8`
+  - Updated Zod response schemas
+
+- **Code Quality**:
+  - Added semicolons to all TypeScript files for consistency
+  - Tightened peer dependency ranges
+  - Added prepack script to ensure built artifacts
+
+- **Build**:
+  - Verified TypeScript compilation with strict mode
+  - Dual format output: CommonJS and ESM
+  - Source maps and type declarations included
+
+---
+
+## Previous Versions (qwen-ai-provider)
+
+The following versions are from the original `qwen-ai-provider` package for AI SDK v4:
 
 ## 0.1.1
 
