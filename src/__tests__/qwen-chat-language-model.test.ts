@@ -504,7 +504,7 @@ describe("doGenerate", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: { value: "Spark" },
+      input: "{\"value\":\"Spark\"}",
     })
   })
 
@@ -929,8 +929,7 @@ describe("doStream", () => {
     const provider = createStreamingTestProvider()
     const model = provider("qwen-chat")
     const { stream } = await model.doStream({ prompt: TEST_PROMPT })
-    await expect(async () => await convertReadableStreamToArray(stream)).rejects
-      .toThrow()
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects.toThrow()
   })
 
   it("should throw InvalidResponseDataError when tool_calls delta missing id", async () => {
@@ -942,8 +941,7 @@ describe("doStream", () => {
     const provider = createStreamingTestProvider()
     const model = provider("qwen-chat")
     const { stream } = await model.doStream({ prompt: TEST_PROMPT })
-    await expect(async () => await convertReadableStreamToArray(stream)).rejects
-      .toThrow()
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects.toThrow()
   })
 
   it("should throw InvalidResponseDataError when tool_calls delta missing function.name", async () => {
@@ -955,8 +953,7 @@ describe("doStream", () => {
     const provider = createStreamingTestProvider()
     const model = provider("qwen-chat")
     const { stream } = await model.doStream({ prompt: TEST_PROMPT })
-    await expect(async () => await convertReadableStreamToArray(stream)).rejects
-      .toThrow()
+    await expect(async () => await convertReadableStreamToArray(stream)).rejects.toThrow()
   })
 
   it("should stream reasoning content before text deltas", async () => {
@@ -1088,7 +1085,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: { value: "Sparkle Day" },
+      input: "{\"value\":\"Sparkle Day\"}",
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1160,7 +1157,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: { value: "Sparkle Day" },
+      input: "{\"value\":\"Sparkle Day\"}",
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1238,7 +1235,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
       toolName: "searchGoogle",
-      input: { query: "latest news on ai" },
+      input: "{\"query\": \"latest news on ai\"}",
     })
   })
 
@@ -1284,7 +1281,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: { value: "Sparkle Day" },
+      input: "{\"value\":\"Sparkle Day\"}",
     })
     expect(parts).toContainEqual({
       type: "finish",
@@ -1611,7 +1608,7 @@ describe("doStream simulated streaming", () => {
       type: "tool-call",
       toolCallId: "call_O17Uplv4lJvD6DVdIvFFeRMw",
       toolName: "test-tool",
-      input: { value: "Sparkle Day" },
+      input: "{\"value\":\"Sparkle Day\"}",
     })
     expect(parts).toContainEqual({
       type: "finish",
