@@ -1,23 +1,16 @@
 {
   "name": "qwen-ai-provider",
   "version": "0.1.1",
-  "name": "qwen-ai-provider",
-  "version": "0.1.1",
   "packageManager": "pnpm@10.2.0",
-  "description": "Vercel AI Provider for running Qwen AI models",
-  "author": "Younis Ahmed <07430e0e-29c0-4a43-bcd0-c123714a124a@anonaddy.com>",
   "description": "Vercel AI Provider for running Qwen AI models",
   "author": "Younis Ahmed <07430e0e-29c0-4a43-bcd0-c123714a124a@anonaddy.com>",
   "license": "Apache-2.0",
   "homepage": "https://github.com/Younis-Ahmed/qwen-ai-provider",
-  "homepage": "https://github.com/Younis-Ahmed/qwen-ai-provider",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Younis-Ahmed/qwen-ai-provider.git"
-    "url": "git+https://github.com/Younis-Ahmed/qwen-ai-provider.git"
   },
   "bugs": {
-    "url": "https://github.com/Younis-Ahmed/qwen-ai-provider/issues"
     "url": "https://github.com/Younis-Ahmed/qwen-ai-provider/issues"
   },
   "keywords": [
@@ -27,7 +20,6 @@
     "vercel-ai",
     "vercel",
     "ai-sdk"
-    "ai-sdk"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -35,10 +27,6 @@
   "files": [
     "dist/**/*"
   ],
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
@@ -58,13 +46,11 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "clean": "rm -rf dist",
     "prepare": "husky",
-    "prepack": "pnpm build",
     "ci:release": "pnpm clean && pnpm build && changeset publish",
-    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
-    "validate": "pnpm test && pnpm type-check && pnpm lint"
+    "ci:version": "changeset version && pnpm install --no-frozen-lockfile"
   },
   "peerDependencies": {
-    "zod": "^3.25.76 || ^4.1.8"
+    "zod": "^3.25.49"
   },
   "dependencies": {
     "@ai-sdk/provider": "^1.0.7",
@@ -87,10 +73,6 @@
     "typescript": "^5.7.3",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.5",
-    "zod": "^4.1.8"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "zod": "^3.24.1"
   }
 }
