@@ -358,7 +358,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
           type: "tool-call",
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
-          input: JSON.parse(toolCall.function.arguments!),
+          input: toolCall.function.arguments!,
         })
       }
     }
@@ -661,7 +661,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
                       type: "tool-call",
                       toolCallId: toolCall.id,
                       toolName: toolCall.name,
-                      input: JSON.parse(toolCall.arguments),
+                      input: toolCall.arguments,
                     })
                     toolCall.hasFinished = true
                   }
@@ -694,7 +694,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
                     type: "tool-call",
                     toolCallId: toolCall.id,
                     toolName: toolCall.name,
-                    input: JSON.parse(toolCall.arguments),
+                    input: toolCall.arguments,
                   })
                   toolCall.hasFinished = true
                 }

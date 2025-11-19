@@ -1,5 +1,17 @@
 # qwen-ai-provider-v5
 
+## 1.0.2
+
+### Patch Changes
+
+- **Tool Call Compatibility**:
+  - Fixed `QwenChatLanguageModel` to emit `tool-call` stream parts with string `input` payloads, matching the AI SDK v5 `LanguageModelV2ToolCall` contract
+  - Ensured non-streaming `doGenerate` also returns `tool-call` content with stringified JSON `input`
+  - This resolves `toolCall.input.trim is not a function` errors when using `qwen-ai-provider-v5` together with ai-sdk v5 tool execution
+
+- **Testing**:
+  - Updated chat model tests to assert string `input` for tool calls in both streaming and non-streaming modes
+
 ## 1.0.1
 
 ### Patch Changes

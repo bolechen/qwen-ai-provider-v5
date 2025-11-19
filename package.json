@@ -45,7 +45,8 @@
     "prepare": "husky",
     "prepack": "pnpm build",
     "ci:release": "pnpm clean && pnpm build && changeset publish",
-    "ci:version": "changeset version && pnpm install --no-frozen-lockfile"
+    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
+    "validate": "pnpm test && pnpm type-check && pnpm lint"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
