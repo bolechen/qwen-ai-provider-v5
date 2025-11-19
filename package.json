@@ -29,18 +29,8 @@
     "ai-sdk"
     "ai-sdk"
   ],
-  "homepage": "https://github.com/Younis-Ahmed/qwen-ai-provider",
-  "bugs": {
-    "url": "https://github.com/Younis-Ahmed/qwen-ai-provider/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Younis-Ahmed/qwen-ai-provider.git"
-  },
-  "license": "Apache-2.0",
-  "author": "Younis Ahmed <07430e0e-29c0-4a43-bcd0-c123714a124a@anonaddy.com>",
-  "type": "commonjs",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*"
@@ -70,7 +60,11 @@
     "prepare": "husky",
     "prepack": "pnpm build",
     "ci:release": "pnpm clean && pnpm build && changeset publish",
-    "ci:version": "changeset version && pnpm install --no-frozen-lockfile"
+    "ci:version": "changeset version && pnpm install --no-frozen-lockfile",
+    "validate": "pnpm test && pnpm type-check && pnpm lint"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76 || ^4.1.8"
   },
   "dependencies": {
     "@ai-sdk/provider": "^1.0.7",
@@ -95,16 +89,8 @@
     "vitest": "^3.0.5",
     "zod": "^4.1.8"
   },
-  "peerDependencies": {
-    "zod": "^3.25.76 || ^4.1.8"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
-  },
-  "packageManager": "pnpm@10.2.0",
-  "module": "./dist/index.mjs"
+  }
 }

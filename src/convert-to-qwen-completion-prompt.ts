@@ -57,7 +57,9 @@ export function convertToQwenCompletionPrompt({
       // Map parts to text (only text parts are supported here)
       const systemText = systemContent
         .map((part: any) => {
-          if (part?.type === "text") return part.text
+          if (part?.type === "text") {
+            return part.text
+          }
           // System message should not include non-text parts in completion prompts
           throw new UnsupportedFunctionalityError({
             functionality: `system message ${part?.type ?? "unknown"} content parts`,
