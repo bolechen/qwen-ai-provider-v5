@@ -70,7 +70,7 @@ export class QwenEmbeddingModel implements EmbeddingModelV3 {
   }
 
   /**
-   * Sends a request to the Qwen API to generate embeddings for the provided text inputs (V2).
+   * Sends a request to the Qwen API to generate embeddings for the provided text inputs (V3).
    *
    * @param param0 - The parameters object.
    * @param param0.values - An array of strings to be embedded.

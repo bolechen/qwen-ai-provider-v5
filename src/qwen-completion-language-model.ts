@@ -28,32 +28,11 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
+import { buildUsage } from "./build-usage"
 import { convertToQwenCompletionPrompt } from "./convert-to-qwen-completion-prompt"
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
 import { defaultQwenErrorStructure } from "./qwen-error"
-
-/**
- * Build V3 usage object from token counts.
- */
-function buildUsage(
-  inputTokens: number | undefined,
-  outputTokens: number | undefined,
-): LanguageModelV3Usage {
-  return {
-    inputTokens: {
-      total: inputTokens,
-      noCache: undefined,
-      cacheRead: undefined,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: outputTokens,
-      text: undefined,
-      reasoning: undefined,
-    },
-  }
-}
 
 interface QwenCompletionConfig {
   provider: string
@@ -86,7 +65,7 @@ const QwenCompletionResponseSchema = z.object({
  * A language model implementation for Qwen completions.
  *
  * @remarks
- * Implements the LanguageModelV2 interface and handles regular, streaming completions.
+ * Implements the LanguageModelV3 interface and handles regular, streaming completions.
  */
 export class QwenCompletionLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = "v3"
@@ -132,7 +111,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Generates the arguments for invoking the LanguageModelV2 doGenerate method.
+   * Generates the arguments for invoking the LanguageModelV3 doGenerate method.
    */
   private getArgs({
     prompt,
@@ -210,7 +189,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Generates a completion response (V2).
+   * Generates a completion response (V3).
    *
    * @param options - Generation options including prompt and parameters.
    * @returns A promise resolving the generated content, usage, finish status, and metadata.
@@ -269,7 +248,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Streams a completion response (V2).
+   * Streams a completion response (V3).
    *
    * @param options - Generation options including prompt and parameters.
    * @returns A promise resolving a stream of response parts and metadata.

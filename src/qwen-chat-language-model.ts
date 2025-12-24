@@ -27,32 +27,11 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
+import { buildUsage } from "./build-usage"
 import { convertToQwenChatMessages } from "./convert-to-qwen-chat-messages"
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
 import { defaultQwenErrorStructure } from "./qwen-error"
-
-/**
- * Build V3 usage object from token counts.
- */
-function buildUsage(
-  inputTokens: number | undefined,
-  outputTokens: number | undefined,
-): LanguageModelV3Usage {
-  return {
-    inputTokens: {
-      total: inputTokens,
-      noCache: undefined,
-      cacheRead: undefined,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: outputTokens,
-      text: undefined,
-      reasoning: undefined,
-    },
-  }
-}
 
 /**
  * Configuration for the Qwen Chat Language Model.
@@ -109,7 +88,7 @@ const QwenChatResponseSchema = z.object({
 })
 
 /**
- * A language model implementation for Qwen Chat API that follows the LanguageModelV2 interface.
+ * A language model implementation for Qwen Chat API that follows the LanguageModelV3 interface.
  * Handles both regular text generation and structured outputs through various modes.
  *
  * @param options.prompt - The input prompt messages to send to the model
@@ -177,9 +156,9 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Generates the arguments and warnings required for a language model generation call (V2).
+   * Generates the arguments and warnings required for a language model generation call (V3).
    *
-   * @param options - V2 call options
+   * @param options - V3 call options
    * @param options.prompt - The prompt messages for the model
    * @param options.maxOutputTokens - Maximum number of tokens to generate
    * @param options.temperature - Sampling temperature
@@ -233,7 +212,7 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
       })
     }
 
-    // Convert V2 tools to OpenAI format
+    // Convert V3 tools to OpenAI format
     const openaiTools = tools
       ?.map((tool) => {
         if (tool.type === "function") {
@@ -255,7 +234,7 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
       })
       .filter((t): t is NonNullable<typeof t> => t !== null)
 
-    // Convert V2 tool choice to OpenAI format
+    // Convert V3 tool choice to OpenAI format
     let openaiToolChoice: any
     if (toolChoice) {
       if (toolChoice.type === "auto") {
@@ -319,7 +298,7 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Generates a text response from the model (V2).
+   * Generates a text response from the model (V3).
    * @param options - Generation options.
    * @returns A promise resolving with the generation result.
    */
@@ -406,7 +385,7 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
   }
 
   /**
-   * Returns a stream of model responses (V2).
+   * Returns a stream of model responses (V3).
    * @param options - Stream generation options.
    * @returns A promise resolving with the stream and additional metadata.
    */
