@@ -1,4 +1,4 @@
-import type { EmbeddingModelV2, LanguageModelV2 } from "@ai-sdk/provider"
+import type { EmbeddingModelV3, LanguageModelV3 } from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
 import type {
@@ -19,7 +19,7 @@ import { QwenEmbeddingModel } from "./qwen-embedding-model"
  * Creates various language or embedding models based on the provided settings.
  */
 export interface QwenProvider {
-  (modelId: QwenChatModelId, settings?: QwenChatSettings): LanguageModelV2
+  (modelId: QwenChatModelId, settings?: QwenChatSettings): LanguageModelV3
 
   /**
    * Create a new chat model for text generation.
@@ -30,28 +30,36 @@ export interface QwenProvider {
   chatModel: (
     modelId: QwenChatModelId,
     settings?: QwenChatSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 
   /**
-  Creates a text embedding model for text generation.
+  Creates an embedding model for text generation.
   @param modelId The model ID.
   @param settings The settings for the model.
-  @returns The text embedding model.
+  @returns The embedding model.
+   */
+  embeddingModel: (
+    modelId: QwenEmbeddingModelId,
+    settings?: QwenEmbeddingSettings,
+  ) => EmbeddingModelV3
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel: (
     modelId: QwenEmbeddingModelId,
     settings?: QwenEmbeddingSettings,
-  ) => EmbeddingModelV2<string>
+  ) => EmbeddingModelV3
 
   languageModel: (
     modelId: QwenChatModelId,
     settings?: QwenChatSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 
   completion: (
     modelId: QwenCompletionModelId,
     settings?: QwenCompletionSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 }
 
 /**
@@ -170,7 +178,8 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
 
   provider.chatModel = createChatModel
   provider.completion = createCompletionModel
-  provider.textEmbeddingModel = createTextEmbeddingModel
+  provider.embeddingModel = createTextEmbeddingModel
+  provider.textEmbeddingModel = createTextEmbeddingModel // deprecated alias
   provider.languageModel = createChatModel
   return provider as QwenProvider
 }

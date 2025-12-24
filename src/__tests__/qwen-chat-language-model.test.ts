@@ -1,11 +1,11 @@
 /* eslint-disable dot-notation */
-import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
+import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QwenChatLanguageModel } from "../qwen-chat-language-model"
 import { createQwen } from "../qwen-provider"
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: "user", content: [{ type: "text", text: "Hello" }] },
 ]
 
@@ -170,7 +170,7 @@ describe("doGenerate", () => {
     })
   })
 
-  it("should extract usage with V2 field names", async () => {
+  it("should extract usage with V3 field names", async () => {
     responseBody.usage = {
       prompt_tokens: 20,
       total_tokens: 25,
@@ -184,8 +184,8 @@ describe("doGenerate", () => {
     })
 
     expect(usage).toMatchObject({
-      inputTokens: 20,
-      outputTokens: 5,
+      inputTokens: { total: 20 },
+      outputTokens: { total: 5 },
     })
   })
 
@@ -220,8 +220,8 @@ describe("doGenerate", () => {
     })
 
     expect(usage).toMatchObject({
-      inputTokens: 20,
-      outputTokens: undefined,
+      inputTokens: { total: 20 },
+      outputTokens: { total: undefined },
     })
   })
 
@@ -234,10 +234,10 @@ describe("doGenerate", () => {
       prompt: TEST_PROMPT,
     })
 
-    expect(finishReason).toStrictEqual("stop")
+    expect(finishReason).toStrictEqual({ unified: "stop", raw: "stop" })
   })
 
-  it("should support unknown finish reason", async () => {
+  it("should support other finish reason", async () => {
     responseBody.choices[0].finish_reason = "eos"
     const provider = createTestProvider()
     const model = provider("qwen-chat")
@@ -246,7 +246,7 @@ describe("doGenerate", () => {
       prompt: TEST_PROMPT,
     })
 
-    expect(finishReason).toStrictEqual("unknown")
+    expect(finishReason).toStrictEqual({ unified: "other", raw: "eos" })
   })
 
   it("should expose the raw response headers", async () => {
@@ -403,7 +403,7 @@ describe("doGenerate", () => {
           },
         },
         {
-          type: "provider-defined",
+          type: "provider",
           id: "qwen.unsupported",
           name: "unsupported",
           args: {},
@@ -424,16 +424,11 @@ describe("doGenerate", () => {
       ],
     })
 
-    // Warning for dropped provider-defined tool
+    // Warning for dropped provider tool
     expect(warnings).toEqual([
       {
-        type: "unsupported-tool",
-        tool: {
-          type: "provider-defined",
-          id: "qwen.unsupported",
-          name: "unsupported",
-          args: {},
-        },
+        type: "unsupported",
+        feature: "tool type: provider",
       },
     ])
   })
@@ -605,8 +600,8 @@ describe("doGenerate", () => {
         {
           details:
             "JSON response format schema is only supported with structuredOutputs",
-          setting: "responseFormat",
-          type: "unsupported-setting",
+          feature: "responseFormat",
+          type: "unsupported",
         },
       ])
     })
@@ -846,7 +841,7 @@ describe("doStream", () => {
     })
   }
 
-  it("should stream text deltas with V2 format", async () => {
+  it("should stream text deltas with V3 format", async () => {
     const provider = createStreamingTestProvider()
     const model = provider("qwen-chat")
 
@@ -882,8 +877,11 @@ describe("doStream", () => {
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
     })
   })
 
@@ -1011,12 +1009,15 @@ describe("doStream", () => {
 
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
     })
   })
 
-  it("should stream tool deltas with V2 format", async () => {
+  it("should stream tool deltas with V3 format", async () => {
     responseChunks = [
       `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
       + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,`
@@ -1089,8 +1090,11 @@ describe("doStream", () => {
     })
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "tool-calls",
-      usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
+      finishReason: { unified: "tool-calls", raw: "tool_calls" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
     })
   })
 
@@ -1161,8 +1165,11 @@ describe("doStream", () => {
     })
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "tool-calls",
-      usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
+      finishReason: { unified: "tool-calls", raw: "tool_calls" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
     })
   })
 
@@ -1285,8 +1292,11 @@ describe("doStream", () => {
     })
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "tool-calls",
-      usage: { inputTokens: 18, outputTokens: 439, totalTokens: 457 },
+      finishReason: { unified: "tool-calls", raw: "tool_calls" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
     })
   })
 
@@ -1304,7 +1314,7 @@ describe("doStream", () => {
 
     expect(elements.find(e => e.type === "error")).toBeDefined()
     expect(elements.find(e => e.type === "finish")).toMatchObject({
-      finishReason: "unknown",
+      finishReason: { unified: "other" },
       type: "finish",
     })
   })
@@ -1513,8 +1523,11 @@ describe("doStream simulated streaming", () => {
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 4, outputTokens: 30, totalTokens: 34 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 4, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 30, text: undefined, reasoning: undefined },
+      },
       providerMetadata: undefined,
     })
   })
@@ -1553,8 +1566,11 @@ describe("doStream simulated streaming", () => {
     expect(parts.filter(p => p.type === "text-end")).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 4, outputTokens: 30, totalTokens: 34 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 4, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 30, text: undefined, reasoning: undefined },
+      },
       providerMetadata: undefined,
     })
   })
@@ -1612,8 +1628,11 @@ describe("doStream simulated streaming", () => {
     })
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 4, outputTokens: 30, totalTokens: 34 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 4, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 30, text: undefined, reasoning: undefined },
+      },
       providerMetadata: undefined,
     })
   })

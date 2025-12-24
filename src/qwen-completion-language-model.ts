@@ -1,11 +1,12 @@
 import type {
   APICallError,
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3Warning,
 } from "@ai-sdk/provider"
 import type {
   FetchFunction,
@@ -31,6 +32,28 @@ import { convertToQwenCompletionPrompt } from "./convert-to-qwen-completion-prom
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
 import { defaultQwenErrorStructure } from "./qwen-error"
+
+/**
+ * Build V3 usage object from token counts.
+ */
+function buildUsage(
+  inputTokens: number | undefined,
+  outputTokens: number | undefined,
+): LanguageModelV3Usage {
+  return {
+    inputTokens: {
+      total: inputTokens,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: outputTokens,
+      text: undefined,
+      reasoning: undefined,
+    },
+  }
+}
 
 interface QwenCompletionConfig {
   provider: string
@@ -65,8 +88,8 @@ const QwenCompletionResponseSchema = z.object({
  * @remarks
  * Implements the LanguageModelV2 interface and handles regular, streaming completions.
  */
-export class QwenCompletionLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = "v2"
+export class QwenCompletionLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = "v3"
   readonly supportedUrls: Record<string, RegExp[]> = {}
 
   readonly modelId: QwenCompletionModelId
@@ -125,21 +148,21 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV2CallOptions) {
-    const warnings: LanguageModelV2CallWarning[] = []
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = []
 
     // Warn if unsupported settings are used.
     if (topK != null) {
       warnings.push({
-        type: "unsupported-setting",
-        setting: "topK",
+        type: "unsupported",
+        feature: "topK",
       })
     }
 
     if (responseFormat != null && responseFormat.type !== "text") {
       warnings.push({
-        type: "unsupported-setting",
-        setting: "responseFormat",
+        type: "unsupported",
+        feature: "responseFormat",
         details: "JSON response format is not supported.",
       })
     }
@@ -193,8 +216,8 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
    * @returns A promise resolving the generated content, usage, finish status, and metadata.
    */
   async doGenerate(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
     const { args, warnings } = this.getArgs(options)
 
     const {
@@ -218,8 +241,8 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
 
     const choice = response.choices[0]
 
-    // Build V2 content array
-    const content: LanguageModelV2Content[] = []
+    // Build V3 content array
+    const content: LanguageModelV3Content[] = []
 
     if (choice.text) {
       content.push({
@@ -231,13 +254,10 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapQwenFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens:
-          (response.usage?.prompt_tokens ?? 0)
-          + (response.usage?.completion_tokens ?? 0) || undefined,
-      },
+      usage: buildUsage(
+        response.usage?.prompt_tokens,
+        response.usage?.completion_tokens,
+      ),
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -255,8 +275,8 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
    * @returns A promise resolving a stream of response parts and metadata.
    */
   async doStream(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
     const { args, warnings } = this.getArgs(options)
 
     const body = {
@@ -279,16 +299,8 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     })
 
-    let finishReason: LanguageModelV2FinishReason = "unknown"
-    let usage: {
-      inputTokens: number | undefined
-      outputTokens: number | undefined
-      totalTokens: number | undefined
-    } = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    }
+    let finishReason: LanguageModelV3FinishReason = { unified: "other", raw: undefined }
+    let usage: LanguageModelV3Usage = buildUsage(undefined, undefined)
     let isFirstChunk = true
     let hasStreamStarted = false
     let textId: string | undefined
@@ -297,7 +309,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           transform(chunk, controller) {
             if (!chunk.success) {
@@ -333,13 +345,10 @@ export class QwenCompletionLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage = {
-                inputTokens: value.usage.prompt_tokens,
-                outputTokens: value.usage.completion_tokens,
-                totalTokens:
-                  (value.usage.prompt_tokens ?? 0)
-                  + (value.usage.completion_tokens ?? 0) || undefined,
-              }
+              usage = buildUsage(
+                value.usage.prompt_tokens,
+                value.usage.completion_tokens,
+              )
             }
 
             const choice = value.choices[0]

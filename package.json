@@ -3,7 +3,7 @@
   "type": "commonjs",
   "version": "1.0.2",
   "packageManager": "pnpm@10.2.0",
-  "description": "Vercel AI Provider v5 for running Qwen AI models",
+  "description": "Vercel AI Provider v6 for running Qwen AI models",
   "author": "bolechen <avenger@php.net>",
   "license": "Apache-2.0",
   "homepage": "https://github.com/bolechen/qwen-ai-provider-v5",
@@ -20,7 +20,7 @@
     "provider",
     "vercel-ai",
     "vercel",
-    "ai-sdk v5"
+    "ai-sdk v6"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -52,8 +52,8 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^2.0.0",
-    "@ai-sdk/provider-utils": "^3.0.0"
+    "@ai-sdk/provider": "^3.0.0",
+    "@ai-sdk/provider-utils": "^4.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.1.1",

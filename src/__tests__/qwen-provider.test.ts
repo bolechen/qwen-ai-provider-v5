@@ -93,8 +93,22 @@ describe("qwenProvider", () => {
     })
   })
 
-  describe("textEmbeddingModel", () => {
-    it("should construct a text embedding model with correct configuration", () => {
+  describe("embeddingModel", () => {
+    it("should construct an embedding model with correct configuration", () => {
+      const settings = { user: "foo-user" }
+      provider.embeddingModel("qwen-vl-plus", settings)
+      expect(QwenEmbeddingModel).toHaveBeenCalledWith(
+        "qwen-vl-plus",
+        settings,
+        expect.objectContaining({
+          provider: "qwen.embedding",
+        }),
+      )
+    })
+  })
+
+  describe("textEmbeddingModel (deprecated)", () => {
+    it("should construct an embedding model with correct configuration", () => {
       const settings = { user: "foo-user" }
       provider.textEmbeddingModel("qwen-vl-plus", settings)
       expect(QwenEmbeddingModel).toHaveBeenCalledWith(

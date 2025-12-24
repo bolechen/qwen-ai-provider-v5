@@ -1,11 +1,12 @@
 import type {
   APICallError,
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+  SharedV3Warning,
 } from "@ai-sdk/provider"
 import type {
   FetchFunction,
@@ -30,6 +31,28 @@ import { convertToQwenChatMessages } from "./convert-to-qwen-chat-messages"
 import { getResponseMetadata } from "./get-response-metadata"
 import { mapQwenFinishReason } from "./map-qwen-finish-reason"
 import { defaultQwenErrorStructure } from "./qwen-error"
+
+/**
+ * Build V3 usage object from token counts.
+ */
+function buildUsage(
+  inputTokens: number | undefined,
+  outputTokens: number | undefined,
+): LanguageModelV3Usage {
+  return {
+    inputTokens: {
+      total: inputTokens,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: outputTokens,
+      text: undefined,
+      reasoning: undefined,
+    },
+  }
+}
 
 /**
  * Configuration for the Qwen Chat Language Model.
@@ -101,8 +124,8 @@ const QwenChatResponseSchema = z.object({
  * @param options.responseFormat - Specifies the desired format of the response (e.g. JSON)
  * @param options.seed - Random seed for deterministic generation
  */
-export class QwenChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = "v2"
+export class QwenChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = "v3"
 
   readonly supportedUrls: Record<string, RegExp[]> = {}
 
@@ -186,14 +209,14 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
     seed,
     tools,
     toolChoice,
-  }: LanguageModelV2CallOptions) {
-    const warnings: LanguageModelV2CallWarning[] = []
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = []
 
     // Warn if unsupported settings are used:
     if (topK != null) {
       warnings.push({
-        type: "unsupported-setting",
-        setting: "topK",
+        type: "unsupported",
+        feature: "topK",
       })
     }
 
@@ -203,8 +226,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       && !this.supportsStructuredOutputs
     ) {
       warnings.push({
-        type: "unsupported-setting",
-        setting: "responseFormat",
+        type: "unsupported",
+        feature: "responseFormat",
         details:
           "JSON response format schema is only supported with structuredOutputs",
       })
@@ -225,8 +248,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
         }
         // Provider-defined tools not supported yet
         warnings.push({
-          type: "unsupported-tool",
-          tool,
+          type: "unsupported",
+          feature: `tool type: ${tool.type}`,
         })
         return null
       })
@@ -301,8 +324,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
    * @returns A promise resolving with the generation result.
    */
   async doGenerate(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2["doGenerate"]>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
     const { args, warnings } = this.getArgs(options)
 
     const body = JSON.stringify(args)
@@ -332,8 +355,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       parsedBody,
     })
 
-    // Build V2 content array
-    const content: LanguageModelV2Content[] = []
+    // Build V3 content array
+    const content: LanguageModelV3Content[] = []
 
     // Add reasoning content if present
     if (choice.message.reasoning_content) {
@@ -363,17 +386,14 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       }
     }
 
-    // Return V2 structured generation details
+    // Return V3 structured generation details
     return {
       content,
       finishReason: mapQwenFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
-        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens:
-          (responseBody.usage?.prompt_tokens ?? 0)
-          + (responseBody.usage?.completion_tokens ?? 0) || undefined,
-      },
+      usage: buildUsage(
+        responseBody.usage?.prompt_tokens ?? undefined,
+        responseBody.usage?.completion_tokens ?? undefined,
+      ),
       ...(providerMetadata && { providerMetadata }),
       request: { body },
       response: {
@@ -391,12 +411,12 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
    * @returns A promise resolving with the stream and additional metadata.
    */
   async doStream(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2["doStream"]>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
     if (this.settings.simulateStreaming) {
       // Simulate streaming by generating a full response and splitting it.
       const result = await this.doGenerate(options)
-      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
+      const simulatedStream = new ReadableStream<LanguageModelV3StreamPart>({
         start(controller) {
           controller.enqueue({
             type: "stream-start",
@@ -495,16 +515,8 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean
     }> = []
 
-    let finishReason: LanguageModelV2FinishReason = "unknown"
-    let usage: {
-      inputTokens: number | undefined
-      outputTokens: number | undefined
-      totalTokens: number | undefined
-    } = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    }
+    let finishReason: LanguageModelV3FinishReason = { unified: "other", raw: undefined }
+    let usage: LanguageModelV3Usage = buildUsage(undefined, undefined)
     let isFirstChunk = true
     let hasStreamStarted = false
     let textId: string | undefined
@@ -514,7 +526,7 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           transform(chunk, controller) {
             if (!chunk.success) {
@@ -551,13 +563,10 @@ export class QwenChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage = {
-                inputTokens: value.usage.prompt_tokens,
-                outputTokens: value.usage.completion_tokens,
-                totalTokens:
-                  (value.usage.prompt_tokens ?? 0)
-                  + (value.usage.completion_tokens ?? 0) || undefined,
-              }
+              usage = buildUsage(
+                value.usage.prompt_tokens,
+                value.usage.completion_tokens,
+              )
             }
 
             const choice = value.choices[0]
