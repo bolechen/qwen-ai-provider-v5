@@ -13,7 +13,6 @@
 
 ## Table of Contents
 
-- [Qwen AI Provider for Vercel AI SDK](#qwen-ai-provider-for-vercel-ai-sdk)
 - [Diagram](#diagram)
 - [Environment Variable](#enviroment-variable)
 - [Setup](#setup)
@@ -33,7 +32,7 @@ This package enables seamless integration of **Alibaba Cloud's Qwen language mod
 
 ### Original Repository
 
-This is a maintained fork of the original [qwen-ai-provider](https://github.com/Younis-Ahmed/qwen-ai-provider) repository, updated for AI SDK v5 compatibility. We deeply appreciate the original author's contribution to the community.
+This is a maintained fork of the original [qwen-ai-provider](https://github.com/Younis-Ahmed/qwen-ai-provider) repository, updated for AI SDK v6 compatibility. We deeply appreciate the original author's contribution to the community.
 
 ---
 
