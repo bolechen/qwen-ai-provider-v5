@@ -20,14 +20,16 @@
 - [Provider Instance](#provider-instance)
 - [Language Models](#language-models)
 - [Embedding Models](#embedding-models)
+- [Reranking Models](#reranking-models)
 - [Examples](#examples)
 
 This package enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK v6**. Key features:
 
-- Full compatibility with AI SDK v6's `generateText`, `streamText`, and tool-calling functions
-- Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, and `qwen2.5 series`
+- Full compatibility with AI SDK v6's `generateText`, `streamText`, `rerank`, and tool-calling functions
+- Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, `qwen2.5 series`, and `qwen3-reranker`
 - Customizable API configurations for enterprise deployments
 - Complete specification v3 implementation with enhanced usage tracking, improved finish reasons, and better tool support
+- **NEW**: Reranking support with Qwen3-Reranker models for improved search relevance
 
 ### Original Repository
 
@@ -217,6 +219,53 @@ const modelLegacy = qwen.textEmbeddingModel("text-embedding-v3")
 | ------------------- | ------------------ | ---------------------- | ---------------------- |
 | `text-embedding-v3` | 1024               | 6                      | 8,192                  |
 
+## Reranking Models
+
+You can create models that call the [Qwen reranking API](https://qwenlm.github.io/blog/qwen3-embedding/) using the `.rerankingModel()` factory method. Reranking models improve search relevance by reordering documents based on their semantic similarity to a query.
+
+```ts
+const model = qwen.rerankingModel("gte-rerank-v2")
+```
+
+### Example
+
+```ts
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+
+const { ranking, rerankedDocuments } = await rerank({
+  model: qwen.rerankingModel("gte-rerank-v2"),
+  documents: [
+    "sunny day at the beach",
+    "rainy afternoon in the city",
+    "snowy night in the mountains",
+  ],
+  query: "talk about rain",
+  topN: 2,
+})
+
+console.log(rerankedDocuments)
+// ['rainy afternoon in the city', 'sunny day at the beach']
+
+console.log(ranking)
+// [
+//   { originalIndex: 1, score: 0.95, document: 'rainy afternoon in the city' },
+//   { originalIndex: 0, score: 0.72, document: 'sunny day at the beach' }
+// ]
+```
+
+### Model Capabilities
+
+| Model                 | Parameters | Sequence Length | Instruction Aware  |
+| --------------------- | ---------- | --------------- | ------------------ |
+| `gte-rerank-v2`       | -          | -               | :x:                |
+| `qwen3-reranker-0.6b` | 0.6B       | 32K             | :heavy_check_mark: |
+| `qwen3-reranker-4b`   | 4B         | 32K             | :heavy_check_mark: |
+| `qwen3-reranker-8b`   | 8B         | 32K             | :heavy_check_mark: |
+
+> **Note**
+> Qwen3-Reranker models support over 100 languages and achieve state-of-the-art performance on multiple reranking benchmarks. See the [Qwen3 Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/) for more details.
+
 ## Examples
 
 Below are comprehensive examples demonstrating various AI functionalities:
@@ -331,6 +380,10 @@ const result = await generateText({
 console.log(JSON.stringify(result.object.recipe, null, 2))
 ```
 
+### generate-obj-reasoning-mdl.ts
+
+```typescript
+import { generateObject, generateText } from "ai"
 ### generate-object-reasoning-mdl.ts
 
 ```typescript
@@ -470,4 +523,70 @@ const result = streamText({
     console.log("Token usage:", usage)
   },
 })
+```
+
+### rerank-documents.ts
+
+```typescript
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
+
+async function main() {
+  const documents = [
+    "Machine learning is a subset of artificial intelligence.",
+    "Paris is the capital city of France.",
+    "Neural networks are inspired by the human brain.",
+    "The Eiffel Tower is located in Paris.",
+    "Deep learning uses multiple layers of neural networks.",
+  ]
+
+  const { ranking, rerankedDocuments } = await rerank({
+    model: qwen.rerankingModel("gte-rerank-v2"),
+    documents,
+    query: "What is artificial intelligence and machine learning?",
+    topN: 3,
+  })
+
+  console.log("Reranked documents:", rerankedDocuments)
+  // ['Machine learning is a subset...', 'Deep learning uses...', 'Neural networks are...']
+
+  console.log("Ranking with scores:")
+  ranking.forEach((item) => {
+    console.log(`  Index ${item.originalIndex}: Score ${item.score.toFixed(3)}`)
+    console.log(`  Document: ${item.document}\n`)
+  })
+}
+
+main().catch(console.error)
+```
+
+### rerank-with-objects.ts
+
+```typescript
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
+
+async function main() {
+  // Reranking also works with object documents
+  const documents = [
+    { id: "1", title: "AI Basics", text: "Machine learning is a subset of AI." },
+    { id: "2", title: "Geography", text: "Paris is the capital of France." },
+    { id: "3", title: "Neural Nets", text: "Neural networks mimic the brain." },
+  ]
+
+  const { ranking } = await rerank({
+    model: qwen.rerankingModel("qwen3-reranker-0.6b"),
+    documents,
+    query: "How does artificial intelligence work?",
+    topN: 2,
+  })
+
+  // Access the original object from ranking results
+  console.log("Top result:", ranking[0].document)
+  // { id: '1', title: 'AI Basics', text: 'Machine learning is a subset of AI.' }
+}
+
+main().catch(console.error)
 ```
