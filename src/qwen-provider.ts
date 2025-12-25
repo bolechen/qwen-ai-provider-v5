@@ -28,7 +28,7 @@ import { QwenRerankingModel } from "./qwen-reranking-model"
  * Creates various language or embedding models based on the provided settings.
  */
 export interface QwenProvider {
-  (modelId: QwenChatModelId, settings?: QwenChatSettings): LanguageModelV2
+  (modelId: QwenChatModelId, settings?: QwenChatSettings): LanguageModelV3
 
   /**
    * Create a new chat model for text generation.
@@ -39,13 +39,21 @@ export interface QwenProvider {
   chatModel: (
     modelId: QwenChatModelId,
     settings?: QwenChatSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 
   /**
-  Creates a text embedding model for text generation.
+  Creates an embedding model for text generation.
   @param modelId The model ID.
   @param settings The settings for the model.
-  @returns The text embedding model.
+  @returns The embedding model.
+   */
+  embeddingModel: (
+    modelId: QwenEmbeddingModelId,
+    settings?: QwenEmbeddingSettings,
+  ) => EmbeddingModelV3
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel: (
     modelId: QwenEmbeddingModelId,
@@ -66,12 +74,12 @@ export interface QwenProvider {
   languageModel: (
     modelId: QwenChatModelId,
     settings?: QwenChatSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 
   completion: (
     modelId: QwenCompletionModelId,
     settings?: QwenCompletionSettings,
-  ) => LanguageModelV2
+  ) => LanguageModelV3
 }
 
 /**

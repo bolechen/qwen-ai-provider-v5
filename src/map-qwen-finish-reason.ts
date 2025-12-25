@@ -1,22 +1,35 @@
-import type { LanguageModelV2FinishReason } from "@ai-sdk/provider"
+import type { LanguageModelV3FinishReason } from "@ai-sdk/provider"
 
 /**
  * Maps the finish reason from the backend response to a standardized format.
  *
  * @param finishReason - The original finish reason string.
- * @returns The mapped LanguageModelV2FinishReason.
+ * @returns The mapped LanguageModelV3FinishReason.
  */
 export function mapQwenFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV2FinishReason {
+): LanguageModelV3FinishReason {
+  let unified: LanguageModelV3FinishReason["unified"]
+
   switch (finishReason) {
     case "stop":
-      return "stop"
+      unified = "stop"
+      break
     case "length":
-      return "length"
+      unified = "length"
+      break
     case "tool_calls":
-      return "tool-calls"
+      unified = "tool-calls"
+      break
+    case "content_filter":
+      unified = "content-filter"
+      break
     default:
-      return "unknown"
+      unified = "other"
+  }
+
+  return {
+    unified,
+    raw: finishReason ?? undefined,
   }
 }

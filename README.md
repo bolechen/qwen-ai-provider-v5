@@ -1,12 +1,15 @@
-# Qwen AI Provider for Vercel AI SDK v5
+# Qwen AI Provider for Vercel AI SDK v6
 
 [![Qwen Supported](https://img.shields.io/badge/Vercel_AI_SDK-Qwen_Provider-blue)](https://sdk.vercel.ai/providers/community-providers/qwen)
 [![npm version](https://img.shields.io/npm/v/qwen-ai-provider-v5.svg)](https://www.npmjs.com/package/qwen-ai-provider-v5)
 
-> **Important Notice**: This package (`qwen-ai-provider-v5`) is specifically designed for **AI SDK v5** (specification v2).
+> **Important Notice**: This package (`qwen-ai-provider-v5`) supports multiple AI SDK versions:
 >
-> - For AI SDK v4 users, please continue using the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package.
-> - This is a community-maintained fork focused on v5 compatibility. Special thanks to the [original author](https://github.com/Younis-Ahmed/qwen-ai-provider) for their excellent work.
+> - **v2.0.0+**: Designed for **AI SDK v6** (specification v3) - **Current version**
+> - **v1.x**: For **AI SDK v5** (specification v2) users
+> - For AI SDK v4 users, please use the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package.
+>
+> This is a community-maintained fork. Special thanks to the [original author](https://github.com/Younis-Ahmed/qwen-ai-provider) for their excellent work.
 
 ## Table of Contents
 
@@ -20,7 +23,7 @@
 - [Reranking Models](#reranking-models)
 - [Examples](#examples)
 
-This package enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK v5**. Key features:
+This package enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK v6**. Key features:
 
 - Full compatibility with AI SDK v6's `generateText`, `streamText`, `rerank`, and tool-calling functions
 - Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, `qwen2.5 series`, and `qwen3-reranker`
@@ -93,29 +96,33 @@ DASHSCOPE_API_KEY = ""
 
 ## Setup
 
-The Qwen provider for AI SDK v5 is available in the `qwen-ai-provider-v5` module. You can install it with:
+The Qwen provider for AI SDK v6 is available in the `qwen-ai-provider-v5` module. You can install it with:
 
 ```bash
-# For pnpm
-pnpm add qwen-ai-provider-v5
+# For pnpm (AI SDK v6)
+pnpm add qwen-ai-provider-v5@^2 ai@^6.0.0
 ```
 
 ```bash
-# For npm
-npm install qwen-ai-provider-v5
+# For npm (AI SDK v6)
+npm install qwen-ai-provider-v5@^2 ai@^6.0.0
 ```
 
 ```bash
-# For yarn
-yarn add qwen-ai-provider-v5
+# For yarn (AI SDK v6)
+yarn add qwen-ai-provider-v5@^2 ai@^6.0.0
 ```
 
-> **Note**: This package requires AI SDK v5. If you're using AI SDK v4, please use the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package instead.
+> **Note**:
+>
+> - **v2.0.0+** requires **AI SDK v6** (`ai@^6.0.0`)
+> - **v1.x** supports **AI SDK v5** (`ai@^5.0.0`)
+> - For AI SDK v4, please use the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package instead.
 
 ### Zod Compatibility
 
 - Supports `zod` versions: `^3.25.76` or `^4.1.8`.
-- This matches the peer dependency range required by `@ai-sdk/provider-utils@3.x` to ensure installs resolve cleanly.
+- This matches the peer dependency range required by `@ai-sdk/provider-utils@^4.0.0` to ensure installs resolve cleanly.
 - The provider uses only APIs compatible with both ranges.
 
 ## Provider Instance
@@ -169,7 +176,7 @@ You can use Qwen language models to generate text with the `generateText` functi
 
 ```ts
 import { generateText } from "ai"
-import { qwen } from "qwen-ai-provider"
+import { qwen } from "qwen-ai-provider-v5"
 
 const { text } = await generateText({
   model: qwen("qwen-plus"),
@@ -178,7 +185,7 @@ const { text } = await generateText({
 ```
 
 > **Note**
-> Qwen language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+> Qwen language models can also be used in the `streamText`, `generateText` with `output` setting (replaces `generateObject`), and `streamUI` functions (see [AI SDK Core](https://sdk.vercel.ai/docs/ai-sdk-core) and [AI SDK RSC](https://sdk.vercel.ai/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 
@@ -196,10 +203,14 @@ const { text } = await generateText({
 
 ## Embedding Models
 
-You can create models that call the [Qwen embeddings API](https://www.alibabacloud.com/help/en/model-studio/getting-started/models#cff6607866tsg) using the `.textEmbeddingModel()` factory method.
+You can create models that call the [Qwen embeddings API](https://www.alibabacloud.com/help/en/model-studio/getting-started/models#cff6607866tsg) using the `.embeddingModel()` factory method (or `.textEmbeddingModel()` for backward compatibility).
 
 ```ts
-const model = qwen.textEmbeddingModel("text-embedding-v3")
+// Recommended: Use embeddingModel (AI SDK v6)
+const model = qwen.embeddingModel("text-embedding-v3")
+
+// Also supported: textEmbeddingModel (deprecated, but still works)
+const modelLegacy = qwen.textEmbeddingModel("text-embedding-v3")
 ```
 
 ### Model Capabilities
@@ -339,27 +350,30 @@ const result = await generateText({
 console.log(result.text)
 ```
 
-### generate-obj.ts
+### generate-object.ts
 
 ```typescript
-import { generateObject } from "ai"
+import { generateText } from "ai"
 import { qwen } from "qwen-ai-provider-v5"
 import { z } from "zod"
 
-const result = await generateObject({
+// AI SDK v6: Use generateText with output setting instead of generateObject
+const result = await generateText({
   model: qwen("qwen-plus"),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+  output: {
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
-  }),
+  },
   prompt: "Generate a lasagna recipe.",
 })
 
@@ -370,6 +384,10 @@ console.log(JSON.stringify(result.object.recipe, null, 2))
 
 ```typescript
 import { generateObject, generateText } from "ai"
+### generate-object-reasoning-mdl.ts
+
+```typescript
+import { generateText } from "ai"
 import { qwen } from "qwen-ai-provider-v5"
 import { z } from "zod"
 import "dotenv/config"
@@ -381,20 +399,23 @@ async function main() {
       "Predict the top 3 largest city by 2050. For each, return the name, the country, the reason why it will on the list, and the estimated population in millions.",
   })
 
-  const { object } = await generateObject({
+  // AI SDK v6: Use generateText with output setting
+  const { object } = await generateText({
     model: qwen("qwen-max"),
     prompt: `Extract the desired information from this text: \n${rawOutput}`,
-    schema: z.object({
-      name: z.string().describe("the name of the city"),
-      country: z.string().describe("the name of the country"),
-      reason: z
-        .string()
-        .describe(
-          "the reason why the city will be one of the largest cities by 2050",
-        ),
-      estimatedPopulation: z.number(),
-    }),
-    output: "array",
+    output: {
+      schema: z.object({
+        name: z.string().describe("the name of the city"),
+        country: z.string().describe("the name of the country"),
+        reason: z
+          .string()
+          .describe(
+            "the reason why the city will be one of the largest cities by 2050",
+          ),
+        estimatedPopulation: z.number(),
+      }),
+      mode: "array",
+    },
   })
 
   console.log(object)
@@ -412,7 +433,8 @@ import "dotenv/config"
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: qwen.textEmbeddingModel("text-embedding-v3"),
+    // Use embeddingModel (recommended) or textEmbeddingModel (deprecated)
+    model: qwen.embeddingModel("text-embedding-v3"),
     value: "sunny day at the beach",
   })
 
@@ -432,7 +454,8 @@ import "dotenv/config"
 
 async function main() {
   const { embeddings, usage } = await embedMany({
-    model: qwen.textEmbeddingModel("text-embedding-v3"),
+    // Use embeddingModel (recommended) or textEmbeddingModel (deprecated)
+    model: qwen.embeddingModel("text-embedding-v3"),
     values: [
       "sunny day at the beach",
       "rainy afternoon in the city",
@@ -476,22 +499,25 @@ const result = await generateText({
 })
 ```
 
-### record-token-usage-after-streaming-obj.ts
+### record-token-usage-after-streaming-object.ts
 
 ```typescript
-import { streamObject } from "ai"
+import { streamText } from "ai"
 import { qwen } from "qwen-ai-provider-v5"
 import { z } from "zod"
 
-const result = streamObject({
+// AI SDK v6: Use streamText with output setting instead of streamObject
+const result = streamText({
   model: qwen("qwen-plus"),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: {
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
-  }),
+  },
   prompt: "Generate a lasagna recipe.",
   onFinish({ usage }) {
     console.log("Token usage:", usage)

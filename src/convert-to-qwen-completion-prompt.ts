@@ -1,14 +1,14 @@
-import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
+import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
 } from "@ai-sdk/provider"
 
 /**
- * Converts a LanguageModelV2Prompt into a Qwen completion prompt.
+ * Converts a LanguageModelV3Prompt into a Qwen completion prompt.
  *
  * @param options - The configuration options
- * @param options.prompt - The input prompt in LanguageModelV2Prompt format
+ * @param options.prompt - The input prompt in LanguageModelV3Prompt format
  * @param options.inputFormat - Either "prompt" (raw text input) or "messages" (chat messages)
  * @param options.user - Label for user messages (default: "user")
  * @param options.assistant - Label for assistant messages (default: "assistant")
@@ -24,7 +24,7 @@ export function convertToQwenCompletionPrompt({
   user = "user",
   assistant = "assistant",
 }: {
-  prompt: LanguageModelV2Prompt
+  prompt: LanguageModelV3Prompt
   inputFormat: "prompt" | "messages"
   user?: string
   assistant?: string

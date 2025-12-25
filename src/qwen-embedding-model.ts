@@ -1,4 +1,4 @@
-import type { EmbeddingModelV2 } from "@ai-sdk/provider"
+import type { EmbeddingModelV3 } from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type {
   QwenEmbeddingModelId,
@@ -40,8 +40,8 @@ const qwenTextEmbeddingResponseSchema = z.object({
   usage: z.object({ prompt_tokens: z.number() }).nullish(),
 })
 
-export class QwenEmbeddingModel implements EmbeddingModelV2<string> {
-  readonly specificationVersion = "v2"
+export class QwenEmbeddingModel implements EmbeddingModelV3 {
+  readonly specificationVersion = "v3"
   readonly modelId: QwenEmbeddingModelId
 
   private readonly config: QwenEmbeddingConfig
@@ -70,7 +70,7 @@ export class QwenEmbeddingModel implements EmbeddingModelV2<string> {
   }
 
   /**
-   * Sends a request to the Qwen API to generate embeddings for the provided text inputs (V2).
+   * Sends a request to the Qwen API to generate embeddings for the provided text inputs (V3).
    *
    * @param param0 - The parameters object.
    * @param param0.values - An array of strings to be embedded.
@@ -86,8 +86,8 @@ export class QwenEmbeddingModel implements EmbeddingModelV2<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV2<string>["doEmbed"]>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV2<string>["doEmbed"]>>
+  }: Parameters<EmbeddingModelV3["doEmbed"]>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3["doEmbed"]>>
   > {
     // Validate that number of embeddings does not exceed maximum allowed.
     const maxEmbeddings = this.maxEmbeddingsPerCall ?? Number.POSITIVE_INFINITY
@@ -131,13 +131,14 @@ export class QwenEmbeddingModel implements EmbeddingModelV2<string> {
       fetch: this.config.fetch,
     })
 
-    // Map response data to V2 output format.
+    // Map response data to V3 output format.
     return {
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
       response: { headers: responseHeaders },
+      warnings: [],
     }
   }
 }

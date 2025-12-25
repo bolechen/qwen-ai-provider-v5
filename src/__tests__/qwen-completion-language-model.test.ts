@@ -1,11 +1,11 @@
 /* eslint-disable dot-notation */
-import type { LanguageModelV2Prompt } from "@ai-sdk/provider"
+import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { QwenCompletionLanguageModel } from "../qwen-completion-language-model"
 import { createQwen } from "../qwen-provider"
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: "user", content: [{ type: "text", text: "Hello" }] },
 ]
 
@@ -130,7 +130,7 @@ describe("doGenerate", () => {
     })
   })
 
-  it("should extract usage with V2 field names", async () => {
+  it("should extract usage with V3 field names", async () => {
     responseBody.usage = {
       prompt_tokens: 20,
       total_tokens: 25,
@@ -144,8 +144,8 @@ describe("doGenerate", () => {
     })
 
     expect(usage).toMatchObject({
-      inputTokens: 20,
-      outputTokens: 5,
+      inputTokens: { total: 20 },
+      outputTokens: { total: 5 },
     })
   })
 
@@ -193,10 +193,10 @@ describe("doGenerate", () => {
       prompt: TEST_PROMPT,
     })
 
-    expect(finishReason).toStrictEqual("stop")
+    expect(finishReason).toStrictEqual({ unified: "stop", raw: "stop" })
   })
 
-  it("should support unknown finish reason", async () => {
+  it("should support other finish reason", async () => {
     responseBody.choices[0].finish_reason = "eos"
     const provider = createTestProvider()
     const model = provider.completion("qwen-plus")
@@ -205,7 +205,7 @@ describe("doGenerate", () => {
       prompt: TEST_PROMPT,
     })
 
-    expect(finishReason).toStrictEqual("unknown")
+    expect(finishReason).toStrictEqual({ unified: "other", raw: "eos" })
   })
 
   it("should expose the raw response headers", async () => {
@@ -386,8 +386,11 @@ describe("doStream", () => {
     ).toHaveLength(1)
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: "stop",
-      usage: { inputTokens: 10, outputTokens: 362, totalTokens: 372 },
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 10, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 362, text: undefined, reasoning: undefined },
+      },
     })
   })
 
@@ -405,7 +408,7 @@ describe("doStream", () => {
     expect(elements.length).toBeGreaterThanOrEqual(2)
     expect(elements.find(e => e.type === "error")).toBeDefined()
     expect(elements.find(e => e.type === "finish")).toMatchObject({
-      finishReason: "unknown",
+      finishReason: { unified: "other" },
       type: "finish",
     })
   })
