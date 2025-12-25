@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV2Prompt,
-  SharedV2ProviderOptions,
+  LanguageModelV3Prompt,
+  SharedV3ProviderOptions,
 } from "@ai-sdk/provider"
 import type { QwenChatPrompt } from "./qwen-api-types"
 import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
@@ -16,7 +16,7 @@ import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils"
  */
 
 function getQwenOptions(message: {
-  providerOptions?: SharedV2ProviderOptions
+  providerOptions?: SharedV3ProviderOptions
 }) {
   return message?.providerOptions?.qwen ?? {}
 }
@@ -28,7 +28,7 @@ function getQwenOptions(message: {
  * @returns An array of Qwen chat messages.
  */
 export function convertToQwenChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): QwenChatPrompt {
   const messages: QwenChatPrompt = []
   // Iterate over each prompt message.
@@ -175,17 +175,25 @@ export function convertToQwenChatMessages(
       case "tool": {
         // Process tool responses by converting output to JSON string.
         for (const toolResponse of content) {
+          // Skip tool approval responses - only handle tool results
+          if (toolResponse.type === "tool-approval-response") {
+            continue
+          }
+
           const toolResponseOptions = getQwenOptions(toolResponse)
           const output = toolResponse.output
 
-          // Extract the value from the V2 output format
+          // Extract the value from the V3 output format
           let toolContent: string
           if (output.type === "text" || output.type === "error-text") {
             toolContent = output.value
           }
-          else {
-            // json or error-json
+          else if (output.type === "json" || output.type === "error-json") {
             toolContent = JSON.stringify(output.value)
+          }
+          else {
+            // execution-denied or other types
+            toolContent = JSON.stringify({ type: output.type, reason: (output as any).reason })
           }
 
           messages.push({
