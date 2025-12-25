@@ -1,5 +1,19 @@
 # qwen-ai-provider-v5
 
+## 2.1.0
+
+### Minor Changes
+
+- **Reranking API Improvements** - Support both `qwen3-rerank` and `gte-rerank` models
+  - `qwen3-rerank`: Uses OpenAI-compatible API (`/compatible-api/v1/reranks`)
+  - `gte-rerank-v2`: Uses DashScope native API (`/api/v1/services/rerank/...`)
+  - Add `instruct` setting for task-specific ranking (qwen3-rerank only)
+  - Update model capabilities documentation
+
+### Patch Changes
+
+- Fix endpoint for qwen3-rerank from `/compatible-mode/v1/rerank` to `/compatible-api/v1/reranks`
+
 ## 2.0.2
 
 ### Patch Changes
