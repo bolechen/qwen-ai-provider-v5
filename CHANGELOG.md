@@ -1,5 +1,29 @@
 # qwen-ai-provider-v5
 
+## 2.0.0
+
+### Major Changes
+
+- **🚀 AI SDK v6 Support** - Upgrade to Vercel AI SDK v6 (specification v3)
+  - Updated to `@ai-sdk/provider@^3.0.0` (was ^2.0.0)
+  - Updated to `@ai-sdk/provider-utils@^4.0.0` (was ^3.0.0)
+  - Migrated `QwenChatLanguageModel` to `LanguageModelV3` interface
+  - Migrated `QwenCompletionLanguageModel` to `LanguageModelV3` interface
+  - Migrated `QwenEmbeddingModel` to `EmbeddingModelV3` interface
+
+### Breaking Changes
+
+- **Minimum AI SDK Version**: Now requires AI SDK v6 (`ai@^6.0.0`)
+- **FinishReason Format**: Changed from string to object `{ unified: string, raw: string | undefined }`
+- **Usage Format**: Changed to nested structure with `inputTokens: { total, noCache, cacheRead, cacheWrite }` and `outputTokens: { total, text, reasoning }`
+- **Warnings Format**: Changed from `type: "unsupported-setting"` to `type: "unsupported"` with `feature` property
+
+### Migration
+
+If you are using AI SDK v5, please continue using `qwen-ai-provider-v5@^1.0.0`.
+
+---
+
 ## 1.0.2
 
 ### Patch Changes
