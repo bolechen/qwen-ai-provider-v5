@@ -16,17 +16,23 @@ const testDocuments = [
 ]
 
 describe("doRerank", () => {
+  let requestUrl: string
   let requestBody: any
   let requestHeaders: Record<string, string>
   let responseBody: any
   let responseHeaders: Record<string, string>
 
   beforeEach(() => {
+    requestUrl = ""
     requestBody = undefined
     requestHeaders = {}
+    // DashScope native API response format
     responseBody = {
-      results: dummyRankingResults,
+      output: {
+        results: dummyRankingResults,
+      },
       usage: { total_tokens: 100 },
+      request_id: "test-request-id-123",
     }
     responseHeaders = {
       "content-type": "application/json",
@@ -35,13 +41,14 @@ describe("doRerank", () => {
 
   function createTestProvider(overrides?: any) {
     return createQwen({
-      baseURL: "https://my.api.com/v1/",
+      baseURL: "https://my.api.com/compatible-mode/v1",
       headers: {
         Authorization: `Bearer test-api-key`,
       },
       ...overrides,
-      fetch: async (_url, init) => {
+      fetch: async (url, init) => {
         // Capture request
+        requestUrl = url as string
         if (init?.body) {
           requestBody = JSON.parse(init.body as string)
         }
@@ -61,6 +68,21 @@ describe("doRerank", () => {
     })
   }
 
+  it("should use DashScope native API endpoint (not compatible mode)", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("gte-rerank-v2")
+
+    await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    // Should use native API endpoint, not compatible mode
+    expect(requestUrl).toBe(
+      "https://my.api.com/api/v1/services/rerank/text-rerank/text-rerank",
+    )
+  })
+
   it("should extract ranking results", async () => {
     const provider = createTestProvider()
     const model = provider.rerankingModel("gte-rerank-v2")
@@ -75,6 +97,18 @@ describe("doRerank", () => {
       { index: 0, relevanceScore: 0.72 },
       { index: 2, relevanceScore: 0.31 },
     ])
+  })
+
+  it("should return request_id in response", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("gte-rerank-v2")
+
+    const { response } = await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    expect(response?.id).toBe("test-request-id-123")
   })
 
   it("should expose the raw response headers", async () => {
@@ -97,7 +131,7 @@ describe("doRerank", () => {
     })
   })
 
-  it("should pass the model, query, and documents", async () => {
+  it("should pass the model, query, and documents in DashScope native format", async () => {
     const provider = createTestProvider()
     const model = provider.rerankingModel("gte-rerank-v2")
 
@@ -108,12 +142,15 @@ describe("doRerank", () => {
 
     expect(requestBody).toStrictEqual({
       model: "gte-rerank-v2",
-      query: "talk about rain",
-      documents: testDocuments,
+      input: {
+        query: "talk about rain",
+        documents: testDocuments,
+      },
+      parameters: {},
     })
   })
 
-  it("should pass topN parameter", async () => {
+  it("should pass topN parameter in parameters object", async () => {
     const provider = createTestProvider()
     const model = provider.rerankingModel("gte-rerank-v2")
 
@@ -125,13 +162,17 @@ describe("doRerank", () => {
 
     expect(requestBody).toStrictEqual({
       model: "gte-rerank-v2",
-      query: "talk about rain",
-      documents: testDocuments,
-      top_n: 2,
+      input: {
+        query: "talk about rain",
+        documents: testDocuments,
+      },
+      parameters: {
+        top_n: 2,
+      },
     })
   })
 
-  it("should pass returnDocuments setting", async () => {
+  it("should pass returnDocuments setting in parameters object", async () => {
     const provider = createTestProvider()
     const model = provider.rerankingModel("gte-rerank-v2", {
       returnDocuments: true,
@@ -144,9 +185,13 @@ describe("doRerank", () => {
 
     expect(requestBody).toStrictEqual({
       model: "gte-rerank-v2",
-      query: "talk about rain",
-      documents: testDocuments,
-      return_documents: true,
+      input: {
+        query: "talk about rain",
+        documents: testDocuments,
+      },
+      parameters: {
+        return_documents: true,
+      },
     })
   })
 
@@ -164,7 +209,7 @@ describe("doRerank", () => {
       query: "talk about rain",
     })
 
-    expect(requestBody.documents).toStrictEqual([
+    expect(requestBody.input.documents).toStrictEqual([
       JSON.stringify(objectDocs[0]),
       JSON.stringify(objectDocs[1]),
     ])

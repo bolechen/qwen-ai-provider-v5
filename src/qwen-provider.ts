@@ -193,11 +193,22 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     )
 
   // Create a reranking model instance.
+  // Note: Reranking uses DashScope native API, not OpenAI compatible mode.
+  // The baseURL is extracted without /compatible-mode/v1 suffix.
   const createRerankingModel = (
     modelId: QwenRerankingModelId,
     settings: QwenRerankingSettings = {},
-  ) =>
-    new QwenRerankingModel(modelId, settings, getCommonModelConfig("reranking"))
+  ) => {
+    // Extract the base domain from the baseURL (remove /compatible-mode/v1 if present)
+    const rerankBaseURL = (baseURL ?? "https://dashscope-intl.aliyuncs.com/compatible-mode/v1")
+      .replace(/\/compatible-mode\/v1$/, "")
+    return new QwenRerankingModel(modelId, settings, {
+      provider: "qwen.reranking",
+      baseURL: rerankBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+  }
 
   // Default provider returns a chat model.
   const provider = (modelId: QwenChatModelId, settings?: QwenChatSettings) =>

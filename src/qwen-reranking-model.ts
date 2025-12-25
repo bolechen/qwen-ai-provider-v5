@@ -14,35 +14,38 @@ import {
 import { z } from "zod"
 import { defaultQwenErrorStructure } from "./qwen-error"
 
-interface QwenRerankingConfig {
+export interface QwenRerankingConfig {
   provider: string
-  url: (options: { modelId: string, path: string }) => string
+  baseURL: string
   headers: () => Record<string, string | undefined>
   fetch?: FetchFunction
   errorStructure?: QwenErrorStructure<any>
 }
 
 /**
- * Response schema for DashScope reranking API.
- * The API returns results sorted by relevance score in descending order.
+ * Response schema for DashScope native reranking API.
+ * The API returns results wrapped in output.results, sorted by relevance score.
  */
 const qwenRerankingResponseSchema = z.object({
-  results: z.array(
-    z.object({
-      index: z.number(),
-      relevance_score: z.number(),
-      document: z
-        .object({
-          text: z.string(),
-        })
-        .optional(),
-    }),
-  ),
+  output: z.object({
+    results: z.array(
+      z.object({
+        index: z.number(),
+        relevance_score: z.number(),
+        document: z
+          .object({
+            text: z.string(),
+          })
+          .nullish(),
+      }),
+    ),
+  }),
   usage: z
     .object({
       total_tokens: z.number().optional(),
     })
     .optional(),
+  request_id: z.string().optional(),
 })
 
 export class QwenRerankingModel implements RerankingModelV3 {
@@ -94,21 +97,35 @@ export class QwenRerankingModel implements RerankingModelV3 {
     const providerOptionsName = this.config.provider.split(".")[0].trim()
     const specificProviderOptions = providerOptions?.[providerOptionsName]
 
-    // Post the JSON payload to the API endpoint.
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: "/rerank",
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        model: this.modelId,
+    // Build parameters object (only include defined values)
+    const parameters: Record<string, unknown> = {}
+    if (topN != null) {
+      parameters.top_n = topN
+    }
+    if (this.settings.returnDocuments != null) {
+      parameters.return_documents = this.settings.returnDocuments
+    }
+
+    // Build request body in DashScope native format
+    const body = {
+      model: this.modelId,
+      input: {
         query,
         documents: documentTexts,
-        top_n: topN,
-        return_documents: this.settings.returnDocuments,
-        ...specificProviderOptions,
       },
+      parameters,
+      ...specificProviderOptions,
+    }
+
+    // DashScope reranking uses native API, not OpenAI compatible mode
+    // Endpoint: /api/v1/services/rerank/text-rerank/text-rerank
+    const url = `${this.config.baseURL}/api/v1/services/rerank/text-rerank/text-rerank`
+
+    // Post the JSON payload to the API endpoint.
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url,
+      headers: combineHeaders(this.config.headers(), headers),
+      body,
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultQwenErrorStructure,
       ),
@@ -121,11 +138,12 @@ export class QwenRerankingModel implements RerankingModelV3 {
 
     // Map response to V3 format
     return {
-      ranking: response.results.map(result => ({
+      ranking: response.output.results.map(result => ({
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
       response: {
+        id: response.request_id,
         headers: responseHeaders,
       },
       warnings: [],

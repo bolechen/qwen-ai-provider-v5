@@ -222,6 +222,18 @@ const modelLegacy = qwen.textEmbeddingModel("text-embedding-v3")
 
 You can create models that call the [Qwen reranking API](https://qwenlm.github.io/blog/qwen3-embedding/) using the `.rerankingModel()` factory method. Reranking models improve search relevance by reordering documents based on their semantic similarity to a query.
 
+> **Note for Chinese users (中国用户)**
+>
+> If you're using a Chinese API key from `dashscope.aliyuncs.com`, you need to specify the domestic endpoint:
+>
+> ```ts
+> import { createQwen } from "qwen-ai-provider-v5"
+>
+> const qwen = createQwen({
+>   baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+> })
+> ```
+
 ```ts
 const model = qwen.rerankingModel("gte-rerank-v2")
 ```
@@ -381,7 +393,7 @@ console.log(JSON.stringify(result.object.recipe, null, 2))
 
 ### generate-obj-reasoning-mdl.ts
 
-```typescript
+````typescript
 import { generateObject, generateText } from "ai"
 ### generate-object-reasoning-mdl.ts
 
@@ -421,7 +433,7 @@ async function main() {
 }
 
 main().catch(console.error)
-```
+````
 
 ### embed-text.ts
 

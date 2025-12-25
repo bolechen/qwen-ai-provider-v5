@@ -1,5 +1,15 @@
 # qwen-ai-provider-v5
 
+## 2.0.2
+
+### Patch Changes
+
+- Fix reranking API endpoint and request format
+  - Use DashScope native API endpoint `/api/v1/services/rerank/text-rerank/text-rerank` instead of OpenAI compatible mode
+  - Update request body format to `{ model, input: { query, documents }, parameters: { top_n } }`
+  - Update response parsing for `{ output: { results: [...] }, request_id }` format
+  - Add documentation for Chinese users using domestic endpoint
+
 ## 2.0.1
 
 ### Patch Changes
