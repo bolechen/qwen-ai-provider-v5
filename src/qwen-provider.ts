@@ -1,4 +1,8 @@
-import type { EmbeddingModelV2, LanguageModelV2 } from "@ai-sdk/provider"
+import type {
+  EmbeddingModelV3,
+  LanguageModelV3,
+  RerankingModelV3,
+} from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
 import type {
@@ -9,10 +13,15 @@ import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
 } from "./qwen-embedding-settings"
+import type {
+  QwenRerankingModelId,
+  QwenRerankingSettings,
+} from "./qwen-reranking-settings"
 import { loadApiKey, withoutTrailingSlash } from "@ai-sdk/provider-utils"
 import { QwenChatLanguageModel } from "./qwen-chat-language-model"
 import { QwenCompletionLanguageModel } from "./qwen-completion-language-model"
 import { QwenEmbeddingModel } from "./qwen-embedding-model"
+import { QwenRerankingModel } from "./qwen-reranking-model"
 
 /**
  * QwenProvider function type and its properties.
@@ -41,7 +50,18 @@ export interface QwenProvider {
   textEmbeddingModel: (
     modelId: QwenEmbeddingModelId,
     settings?: QwenEmbeddingSettings,
-  ) => EmbeddingModelV2<string>
+  ) => EmbeddingModelV3
+
+  /**
+   * Creates a reranking model for document relevance ranking.
+   * @param modelId The model ID (e.g., 'gte-rerank-v2', 'qwen3-reranker-0.6b').
+   * @param settings The settings for the model.
+   * @returns The reranking model.
+   */
+  rerankingModel: (
+    modelId: QwenRerankingModelId,
+    settings?: QwenRerankingSettings,
+  ) => RerankingModelV3
 
   languageModel: (
     modelId: QwenChatModelId,
@@ -164,13 +184,22 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
       getCommonModelConfig("embedding"),
     )
 
+  // Create a reranking model instance.
+  const createRerankingModel = (
+    modelId: QwenRerankingModelId,
+    settings: QwenRerankingSettings = {},
+  ) =>
+    new QwenRerankingModel(modelId, settings, getCommonModelConfig("reranking"))
+
   // Default provider returns a chat model.
   const provider = (modelId: QwenChatModelId, settings?: QwenChatSettings) =>
     createChatModel(modelId, settings)
 
   provider.chatModel = createChatModel
   provider.completion = createCompletionModel
-  provider.textEmbeddingModel = createTextEmbeddingModel
+  provider.embeddingModel = createTextEmbeddingModel
+  provider.textEmbeddingModel = createTextEmbeddingModel // deprecated alias
+  provider.rerankingModel = createRerankingModel
   provider.languageModel = createChatModel
   return provider as QwenProvider
 }

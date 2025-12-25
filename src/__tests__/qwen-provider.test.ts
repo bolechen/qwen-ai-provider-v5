@@ -4,6 +4,7 @@ import { QwenChatLanguageModel } from "../qwen-chat-language-model"
 import { QwenCompletionLanguageModel } from "../qwen-completion-language-model"
 import { QwenEmbeddingModel } from "../qwen-embedding-model"
 import { createQwen } from "../qwen-provider"
+import { QwenRerankingModel } from "../qwen-reranking-model"
 
 vi.stubEnv("DASHSCOPE_API_KEY", "test-api-key-123")
 
@@ -18,6 +19,10 @@ vi.mock("../qwen-completion-language-model", () => ({
 
 vi.mock("../qwen-embedding-model", () => ({
   QwenEmbeddingModel: vi.fn(),
+}))
+
+vi.mock("../qwen-reranking-model", () => ({
+  QwenRerankingModel: vi.fn(),
 }))
 
 vi.mock("@ai-sdk/provider-utils", () => ({
@@ -102,6 +107,31 @@ describe("qwenProvider", () => {
         settings,
         expect.objectContaining({
           provider: "qwen.embedding",
+        }),
+      )
+    })
+  })
+
+  describe("rerankingModel", () => {
+    it("should construct a reranking model with correct configuration", () => {
+      const settings = { returnDocuments: true }
+      provider.rerankingModel("gte-rerank-v2", settings)
+      expect(QwenRerankingModel).toHaveBeenCalledWith(
+        "gte-rerank-v2",
+        settings,
+        expect.objectContaining({
+          provider: "qwen.reranking",
+        }),
+      )
+    })
+
+    it("should work with qwen3-reranker models", () => {
+      provider.rerankingModel("qwen3-reranker-0.6b", {})
+      expect(QwenRerankingModel).toHaveBeenCalledWith(
+        "qwen3-reranker-0.6b",
+        {},
+        expect.objectContaining({
+          provider: "qwen.reranking",
         }),
       )
     })

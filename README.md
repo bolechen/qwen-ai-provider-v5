@@ -1,4 +1,5 @@
 # Qwen AI Provider for Vercel AI SDK v5
+
 [![Qwen Supported](https://img.shields.io/badge/Vercel_AI_SDK-Qwen_Provider-blue)](https://sdk.vercel.ai/providers/community-providers/qwen)
 [![npm version](https://img.shields.io/npm/v/qwen-ai-provider-v5.svg)](https://www.npmjs.com/package/qwen-ai-provider-v5)
 
@@ -8,6 +9,7 @@
 > - This is a community-maintained fork focused on v5 compatibility. Special thanks to the [original author](https://github.com/Younis-Ahmed/qwen-ai-provider) for their excellent work.
 
 ## Table of Contents
+
 - [Qwen AI Provider for Vercel AI SDK](#qwen-ai-provider-for-vercel-ai-sdk)
 - [Diagram](#diagram)
 - [Environment Variable](#enviroment-variable)
@@ -15,23 +17,27 @@
 - [Provider Instance](#provider-instance)
 - [Language Models](#language-models)
 - [Embedding Models](#embedding-models)
+- [Reranking Models](#reranking-models)
 - [Examples](#examples)
 
 This package enables seamless integration of **Alibaba Cloud's Qwen language models** with applications built using **Vercel AI SDK v5**. Key features:
 
-- Full compatibility with AI SDK v5's `generateText`, `streamText`, `generateObject`, and tool-calling functions
-- Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, and `qwen2.5 series`
+- Full compatibility with AI SDK v6's `generateText`, `streamText`, `rerank`, and tool-calling functions
+- Support for 15+ Qwen models including `qwen-plus`, `qwen-vl-max`, `qwen2.5 series`, and `qwen3-reranker`
 - Customizable API configurations for enterprise deployments
-- Complete specification v2 implementation with content arrays, improved streaming, and enhanced tool support
+- Complete specification v3 implementation with enhanced usage tracking, improved finish reasons, and better tool support
+- **NEW**: Reranking support with Qwen3-Reranker models for improved search relevance
 
 ### Original Repository
+
 This is a maintained fork of the original [qwen-ai-provider](https://github.com/Younis-Ahmed/qwen-ai-provider) repository, updated for AI SDK v5 compatibility. We deeply appreciate the original author's contribution to the community.
 
 ---
 
-
 ## Diagram
+
 <!-- Description or alt text for the diagram -->
+
 ### Architecture diagram showing Qwen provider integration with Vercel AI SDK
 
 ```mermaid
@@ -40,22 +46,22 @@ graph TD
     B --> C{AI Provider}
     C --> D[qwen-ai-provider]
     C --> E[Community Providers]
-    
+
     D --> F[Qwen API Endpoints]
     F --> G[Qwen-plus]
     F --> H[Qwen-vl-max]
     F --> I[Qwen-max]
-    
+
     B --> J[AI SDK Functions]
     J --> K["generateText()"]
     J --> L["streamText()"]
     J --> M["generateObject()"]
     J --> N["streamUI()"]
-    
+
     A --> O[Environment Variables]
     O --> P["DASHSCOPE_API_KEY"]
     O --> Q["AI_PROVIDER=qwen"]
-    
+
     subgraph Provider Configuration
         D --> R["createQwen({
           baseURL: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
@@ -64,7 +70,7 @@ graph TD
         R --> S[Model Instance]
         S --> T["qwen('qwen-plus')"]
     end
-    
+
     subgraph Response Handling
         K --> U[Text Output]
         L --> V[Streaming Response]
@@ -77,13 +83,12 @@ graph TD
     style J fill:#f59e0b,color:#000
 ```
 
-
 ---
 
-
 ## Enviroment Variable
+
 ```ts
-DASHSCOPE_API_KEY=""
+DASHSCOPE_API_KEY = ""
 ```
 
 ## Setup
@@ -108,6 +113,7 @@ yarn add qwen-ai-provider-v5
 > **Note**: This package requires AI SDK v5. If you're using AI SDK v4, please use the original [`qwen-ai-provider`](https://www.npmjs.com/package/qwen-ai-provider) package instead.
 
 ### Zod Compatibility
+
 - Supports `zod` versions: `^3.25.76` or `^4.1.8`.
 - This matches the peer dependency range required by `@ai-sdk/provider-utils@3.x` to ensure installs resolve cleanly.
 - The provider uses only APIs compatible with both ranges.
@@ -117,18 +123,18 @@ yarn add qwen-ai-provider-v5
 You can import the default provider instance `qwen` from `qwen-ai-provider-v5`:
 
 ```ts
-import { qwen } from 'qwen-ai-provider-v5';
+import { qwen } from "qwen-ai-provider-v5"
 ```
 
 If you need a customized setup, you can import `createQwen` from `qwen-ai-provider-v5` and create a provider instance with your settings:
 
 ```ts
-import { createQwen } from 'qwen-ai-provider-v5';
+import { createQwen } from "qwen-ai-provider-v5"
 
 const qwen = createQwen({
   // optional settings, e.g.
   // baseURL: 'https://qwen/api/v1',
-});
+})
 ```
 
 You can use the following optional settings to customize the Qwen provider instance:
@@ -154,7 +160,7 @@ You can use the following optional settings to customize the Qwen provider insta
 You can create models that call the [Qwen chat API](https://www.alibabacloud.com/help/en/model-studio/developer-reference/use-qwen-by-calling-api) using a provider instance. The first argument is the model id, e.g., `qwen-plus`. Some Qwen chat models support tool calls.
 
 ```ts
-const model = qwen('qwen-plus');
+const model = qwen("qwen-plus")
 ```
 
 ### Example
@@ -162,29 +168,30 @@ const model = qwen('qwen-plus');
 You can use Qwen language models to generate text with the `generateText` function:
 
 ```ts
-import { qwen } from 'qwen-ai-provider';
-import { generateText } from 'ai';
+import { generateText } from "ai"
+import { qwen } from "qwen-ai-provider"
 
 const { text } = await generateText({
-  model: qwen('qwen-plus'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-});
+  model: qwen("qwen-plus"),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+})
 ```
+
 > **Note**
 > Qwen language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions (see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
 
 ### Model Capabilities
 
-| Model                     | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ------------------------- | ------------------ | ----------------- | ------------------ | ------------------ |
-| `qwen-vl-max`             | :heavy_check_mark: | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
-| `qwen-plus-latest`        | :x:                | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
-| `qwen-max`                | :x:                | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
-| `qwen2.5-72b-instruct`    | :x:                | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
-| `qwen2.5-14b-instruct-1m` | :x:                | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
-| `qwen2.5-vl-72b-instruct` | :heavy_check_mark: | :heavy_check_mark:| :heavy_check_mark: | :heavy_check_mark: |
+| Model                     | Image Input        | Object Generation  | Tool Usage         | Tool Streaming     |
+| ------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
+| `qwen-vl-max`             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `qwen-plus-latest`        | :x:                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `qwen-max`                | :x:                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `qwen2.5-72b-instruct`    | :x:                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `qwen2.5-14b-instruct-1m` | :x:                | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `qwen2.5-vl-72b-instruct` | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 
-> **Note**  
+> **Note**
 > The table above lists popular models. Please see the [Qwen docs](https://www.alibabacloud.com/help/en/model-studio/getting-started/models) for a full list of available models. You can also pass any available provider model ID as a string if needed.
 
 ## Embedding Models
@@ -192,7 +199,7 @@ const { text } = await generateText({
 You can create models that call the [Qwen embeddings API](https://www.alibabacloud.com/help/en/model-studio/getting-started/models#cff6607866tsg) using the `.textEmbeddingModel()` factory method.
 
 ```ts
-const model = qwen.textEmbeddingModel('text-embedding-v3');
+const model = qwen.textEmbeddingModel("text-embedding-v3")
 ```
 
 ### Model Capabilities
@@ -201,12 +208,56 @@ const model = qwen.textEmbeddingModel('text-embedding-v3');
 | ------------------- | ------------------ | ---------------------- | ---------------------- |
 | `text-embedding-v3` | 1024               | 6                      | 8,192                  |
 
+## Reranking Models
 
+You can create models that call the [Qwen reranking API](https://qwenlm.github.io/blog/qwen3-embedding/) using the `.rerankingModel()` factory method. Reranking models improve search relevance by reordering documents based on their semantic similarity to a query.
+
+```ts
+const model = qwen.rerankingModel("gte-rerank-v2")
+```
+
+### Example
+
+```ts
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+
+const { ranking, rerankedDocuments } = await rerank({
+  model: qwen.rerankingModel("gte-rerank-v2"),
+  documents: [
+    "sunny day at the beach",
+    "rainy afternoon in the city",
+    "snowy night in the mountains",
+  ],
+  query: "talk about rain",
+  topN: 2,
+})
+
+console.log(rerankedDocuments)
+// ['rainy afternoon in the city', 'sunny day at the beach']
+
+console.log(ranking)
+// [
+//   { originalIndex: 1, score: 0.95, document: 'rainy afternoon in the city' },
+//   { originalIndex: 0, score: 0.72, document: 'sunny day at the beach' }
+// ]
+```
+
+### Model Capabilities
+
+| Model                 | Parameters | Sequence Length | Instruction Aware  |
+| --------------------- | ---------- | --------------- | ------------------ |
+| `gte-rerank-v2`       | -          | -               | :x:                |
+| `qwen3-reranker-0.6b` | 0.6B       | 32K             | :heavy_check_mark: |
+| `qwen3-reranker-4b`   | 4B         | 32K             | :heavy_check_mark: |
+| `qwen3-reranker-8b`   | 8B         | 32K             | :heavy_check_mark: |
+
+> **Note**
+> Qwen3-Reranker models support over 100 languages and achieve state-of-the-art performance on multiple reranking benchmarks. See the [Qwen3 Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/) for more details.
 
 ## Examples
 
 Below are comprehensive examples demonstrating various AI functionalities:
-
 
 ### generate-text.ts
 
@@ -226,75 +277,77 @@ const result = await generateText({
 
 // Log the result from the AI text generation
 console.log(result)
-
 ```
 
 ### generate-text-image-prompt.ts
+
 ```typescript
-import { generateText } from 'ai';
-import { qwen } from 'qwen-ai-provider-v5'
+import { generateText } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
 
 const result = await generateText({
-  model: qwen('qwen-plus'),
+  model: qwen("qwen-plus"),
   maxTokens: 512,
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
         {
-          type: 'text',
-          text: 'what are the red things in this image?',
+          type: "text",
+          text: "what are the red things in this image?",
         },
         {
-          type: 'image',
+          type: "image",
           image: new URL(
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/2024_Solar_Eclipse_Prominences.jpg/720px-2024_Solar_Eclipse_Prominences.jpg',
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/2024_Solar_Eclipse_Prominences.jpg/720px-2024_Solar_Eclipse_Prominences.jpg",
           ),
         },
       ],
     },
   ],
-});
+})
 
-console.log(result);
+console.log(result)
 ```
 
 ### generate-text-chat-prompt.ts
+
 ```typescript
-import { generateText } from 'ai';
-import { qwen } from 'qwen-ai-provider-v5';
+import { generateText } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
 
 const result = await generateText({
-  model: qwen('qwen-plus'),
+  model: qwen("qwen-plus"),
   maxTokens: 1024,
-  system: 'You are a helpful chatbot.',
+  system: "You are a helpful chatbot.",
   messages: [
     {
-      role: 'user',
-      content: 'Hello!',
+      role: "user",
+      content: "Hello!",
     },
     {
-      role: 'assistant',
-      content: 'Hello! How can I help you today?',
+      role: "assistant",
+      content: "Hello! How can I help you today?",
     },
     {
-      role: 'user',
-      content: 'I need help with my computer.',
+      role: "user",
+      content: "I need help with my computer.",
     },
   ],
-});
+})
 
-console.log(result.text);
+console.log(result.text)
 ```
 
 ### generate-obj.ts
+
 ```typescript
-import { generateObject } from 'ai';
-import { qwen } from 'qwen-ai-provider-v5';
-import { z } from 'zod';
+import { generateObject } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import { z } from "zod"
 
 const result = await generateObject({
-  model: qwen('qwen-plus'),
+  model: qwen("qwen-plus"),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -307,103 +360,107 @@ const result = await generateObject({
       steps: z.array(z.string()),
     }),
   }),
-  prompt: 'Generate a lasagna recipe.',
-});
+  prompt: "Generate a lasagna recipe.",
+})
 
-console.log(JSON.stringify(result.object.recipe, null, 2));
+console.log(JSON.stringify(result.object.recipe, null, 2))
 ```
 
 ### generate-obj-reasoning-mdl.ts
+
 ```typescript
-import { qwen } from 'qwen-ai-provider-v5';
-import { generateObject, generateText } from 'ai';
-import 'dotenv/config';
-import { z } from 'zod';
+import { generateObject, generateText } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import { z } from "zod"
+import "dotenv/config"
 
 async function main() {
   const { text: rawOutput } = await generateText({
-    model: qwen('qwen-max'),
+    model: qwen("qwen-max"),
     prompt:
-      'Predict the top 3 largest city by 2050. For each, return the name, the country, the reason why it will on the list, and the estimated population in millions.',
-  });
+      "Predict the top 3 largest city by 2050. For each, return the name, the country, the reason why it will on the list, and the estimated population in millions.",
+  })
 
   const { object } = await generateObject({
-    model: qwen('qwen-max'),
-    prompt: 'Extract the desired information from this text: \n' + rawOutput,
+    model: qwen("qwen-max"),
+    prompt: `Extract the desired information from this text: \n${rawOutput}`,
     schema: z.object({
-      name: z.string().describe('the name of the city'),
-      country: z.string().describe('the name of the country'),
+      name: z.string().describe("the name of the city"),
+      country: z.string().describe("the name of the country"),
       reason: z
         .string()
         .describe(
-          'the reason why the city will be one of the largest cities by 2050',
+          "the reason why the city will be one of the largest cities by 2050",
         ),
       estimatedPopulation: z.number(),
     }),
-    output: 'array',
-  });
+    output: "array",
+  })
 
-  console.log(object);
+  console.log(object)
 }
 
-main().catch(console.error);
+main().catch(console.error)
 ```
 
 ### embed-text.ts
+
 ```typescript
-import { qwen } from 'qwen-ai-provider-v5';
-import { embed } from 'ai';
-import 'dotenv/config';
+import { embed } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
 
 async function main() {
   const { embedding, usage } = await embed({
-    model: qwen.textEmbeddingModel('text-embedding-v3'),
-    value: 'sunny day at the beach',
-  });
+    model: qwen.textEmbeddingModel("text-embedding-v3"),
+    value: "sunny day at the beach",
+  })
 
-  console.log(embedding);
-  console.log(usage);
+  console.log(embedding)
+  console.log(usage)
 }
 
-main().catch(console.error);
+main().catch(console.error)
 ```
 
 ### embed-text-batch.ts
+
 ```typescript
-import { qwen } from 'qwen-ai-provider-v5';
-import { embedMany } from 'ai';
-import 'dotenv/config';
+import { embedMany } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
 
 async function main() {
   const { embeddings, usage } = await embedMany({
-    model: qwen.textEmbeddingModel('text-embedding-v3'),
+    model: qwen.textEmbeddingModel("text-embedding-v3"),
     values: [
-      'sunny day at the beach',
-      'rainy afternoon in the city',
-      'snowy night in the mountains',
+      "sunny day at the beach",
+      "rainy afternoon in the city",
+      "snowy night in the mountains",
     ],
-  });
+  })
 
-  console.log(embeddings);
-  console.log(usage);
+  console.log(embeddings)
+  console.log(usage)
 }
 
-main().catch(console.error);
+main().catch(console.error)
 ```
 
 ### call-tools.ts
+
 ```typescript
-import { generateText, tool } from 'ai';
-import { qwen } from 'qwen-ai-provider-v5';
-import { z } from 'zod';
+import { generateText, tool } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import { z } from "zod"
 
 const result = await generateText({
-  model: qwen('qwen-plus'),
+  model: qwen("qwen-plus"),
   tools: {
     weather: tool({
-      description: 'Get the weather in a location',
+      description: "Get the weather in a location",
       parameters: z.object({
-        location: z.string().describe('The location to get the weather for'),
+        location: z.string().describe("The location to get the weather for"),
       }),
       execute: async ({ location }) => ({
         location,
@@ -415,18 +472,19 @@ const result = await generateText({
     }),
   },
   prompt:
-    'What is the weather in San Francisco and what attractions should I visit?',
-});
+    "What is the weather in San Francisco and what attractions should I visit?",
+})
 ```
 
 ### record-token-usage-after-streaming-obj.ts
+
 ```typescript
-import { qwen } from 'qwen-ai-provider-v5';
-import { streamObject } from 'ai';
-import { z } from 'zod';
+import { streamObject } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import { z } from "zod"
 
 const result = streamObject({
-  model: qwen('qwen-plus'),
+  model: qwen("qwen-plus"),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -434,9 +492,75 @@ const result = streamObject({
       steps: z.array(z.string()),
     }),
   }),
-  prompt: 'Generate a lasagna recipe.',
+  prompt: "Generate a lasagna recipe.",
   onFinish({ usage }) {
-    console.log('Token usage:', usage);
+    console.log("Token usage:", usage)
   },
-});
+})
+```
+
+### rerank-documents.ts
+
+```typescript
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
+
+async function main() {
+  const documents = [
+    "Machine learning is a subset of artificial intelligence.",
+    "Paris is the capital city of France.",
+    "Neural networks are inspired by the human brain.",
+    "The Eiffel Tower is located in Paris.",
+    "Deep learning uses multiple layers of neural networks.",
+  ]
+
+  const { ranking, rerankedDocuments } = await rerank({
+    model: qwen.rerankingModel("gte-rerank-v2"),
+    documents,
+    query: "What is artificial intelligence and machine learning?",
+    topN: 3,
+  })
+
+  console.log("Reranked documents:", rerankedDocuments)
+  // ['Machine learning is a subset...', 'Deep learning uses...', 'Neural networks are...']
+
+  console.log("Ranking with scores:")
+  ranking.forEach((item) => {
+    console.log(`  Index ${item.originalIndex}: Score ${item.score.toFixed(3)}`)
+    console.log(`  Document: ${item.document}\n`)
+  })
+}
+
+main().catch(console.error)
+```
+
+### rerank-with-objects.ts
+
+```typescript
+import { rerank } from "ai"
+import { qwen } from "qwen-ai-provider-v5"
+import "dotenv/config"
+
+async function main() {
+  // Reranking also works with object documents
+  const documents = [
+    { id: "1", title: "AI Basics", text: "Machine learning is a subset of AI." },
+    { id: "2", title: "Geography", text: "Paris is the capital of France." },
+    { id: "3", title: "Neural Nets", text: "Neural networks mimic the brain." },
+  ]
+
+  const { ranking } = await rerank({
+    model: qwen.rerankingModel("qwen3-reranker-0.6b"),
+    documents,
+    query: "How does artificial intelligence work?",
+    topN: 2,
+  })
+
+  // Access the original object from ranking results
+  console.log("Top result:", ranking[0].document)
+  // { id: '1', title: 'AI Basics', text: 'Machine learning is a subset of AI.' }
+}
+
+main().catch(console.error)
 ```
