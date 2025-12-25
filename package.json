@@ -38,6 +38,7 @@
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.mjs --run",
     "test:node": "vitest --config vitest.node.config.mjs --run",
+    "test:integration": "vitest --config vitest.node.config.mjs --run src/__tests__/integration/",
     "coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
