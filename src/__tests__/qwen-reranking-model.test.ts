@@ -239,16 +239,18 @@ describe("doRerank", () => {
     })
   })
 
-  it("should work with qwen3-reranker models", async () => {
+  it("should work with other models using DashScope native format", async () => {
     const provider = createTestProvider()
-    const model = provider.rerankingModel("qwen3-reranker-0.6b")
+    const model = provider.rerankingModel("gte-rerank")
 
     await model.doRerank({
       documents: { type: "text", values: testDocuments },
       query: "talk about rain",
     })
 
-    expect(requestBody.model).toBe("qwen3-reranker-0.6b")
+    expect(requestBody.model).toBe("gte-rerank")
+    // Should use native API format
+    expect(requestBody.input).toBeDefined()
   })
 
   it("should return empty warnings array", async () => {
@@ -261,5 +263,139 @@ describe("doRerank", () => {
     })
 
     expect(warnings).toStrictEqual([])
+  })
+})
+
+describe("doRerank with qwen3-rerank (OpenAI-compatible format)", () => {
+  let requestUrl: string
+  let requestBody: any
+  let responseBody: any
+
+  const dummyRankingResults = [
+    { index: 1, relevance_score: 0.95 },
+    { index: 0, relevance_score: 0.72 },
+  ]
+
+  beforeEach(() => {
+    requestUrl = ""
+    requestBody = undefined
+    // OpenAI-compatible API response format
+    responseBody = {
+      results: dummyRankingResults,
+      usage: { total_tokens: 100 },
+      id: "test-request-id-456",
+    }
+  })
+
+  function createTestProvider(overrides?: any) {
+    return createQwen({
+      baseURL: "https://my.api.com/compatible-mode/v1",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      ...overrides,
+      fetch: async (url, init) => {
+        requestUrl = url as string
+        if (init?.body) {
+          requestBody = JSON.parse(init.body as string)
+        }
+        const bodyLength = JSON.stringify(responseBody).length
+        return new Response(JSON.stringify(responseBody), {
+          headers: {
+            "content-type": "application/json",
+            "content-length": bodyLength.toString(),
+          },
+        })
+      },
+    })
+  }
+
+  it("should use OpenAI-compatible API endpoint for qwen3-rerank", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank")
+
+    await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    // Should use OpenAI-compatible endpoint (/compatible-api/v1/reranks)
+    expect(requestUrl).toBe("https://my.api.com/compatible-api/v1/reranks")
+  })
+
+  it("should use flat request format for qwen3-rerank", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank")
+
+    await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    // Should use flat format (not nested input/parameters)
+    expect(requestBody).toStrictEqual({
+      model: "qwen3-rerank",
+      documents: testDocuments,
+      query: "talk about rain",
+    })
+  })
+
+  it("should pass topN parameter directly for qwen3-rerank", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank")
+
+    await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+      topN: 2,
+    })
+
+    expect(requestBody).toStrictEqual({
+      model: "qwen3-rerank",
+      documents: testDocuments,
+      query: "talk about rain",
+      top_n: 2,
+    })
+  })
+
+  it("should pass instruct setting for qwen3-rerank", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank", {
+      instruct: "Retrieve semantically similar text.",
+    })
+
+    await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    expect(requestBody.instruct).toBe("Retrieve semantically similar text.")
+  })
+
+  it("should extract ranking results from OpenAI-compatible response", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank")
+
+    const { ranking } = await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    expect(ranking).toStrictEqual([
+      { index: 1, relevanceScore: 0.95 },
+      { index: 0, relevanceScore: 0.72 },
+    ])
+  })
+
+  it("should return id from OpenAI-compatible response", async () => {
+    const provider = createTestProvider()
+    const model = provider.rerankingModel("qwen3-rerank")
+
+    const { response } = await model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })
+
+    expect(response?.id).toBe("test-request-id-456")
   })
 })

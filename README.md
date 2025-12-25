@@ -267,15 +267,27 @@ console.log(ranking)
 
 ### Model Capabilities
 
-| Model                 | Parameters | Sequence Length | Instruction Aware  |
-| --------------------- | ---------- | --------------- | ------------------ |
-| `gte-rerank-v2`       | -          | -               | :x:                |
-| `qwen3-reranker-0.6b` | 0.6B       | 32K             | :heavy_check_mark: |
-| `qwen3-reranker-4b`   | 4B         | 32K             | :heavy_check_mark: |
-| `qwen3-reranker-8b`   | 8B         | 32K             | :heavy_check_mark: |
+| Model           | API Format | Max Documents | Max Tokens/Doc | Languages | Instruction Support |
+| --------------- | ---------- | ------------- | -------------- | --------- | ------------------- |
+| `qwen3-rerank`  | OpenAI     | 500           | 4,000          | 100+      | :heavy_check_mark:  |
+| `gte-rerank-v2` | DashScope  | 500           | 4,000          | 50+       | :x:                 |
 
 > **Note**
-> Qwen3-Reranker models support over 100 languages and achieve state-of-the-art performance on multiple reranking benchmarks. See the [Qwen3 Embedding blog](https://qwenlm.github.io/blog/qwen3-embedding/) for more details.
+>
+> - `qwen3-rerank` is the latest model with instruction support for task-specific ranking
+> - See the [official API documentation](https://help.aliyun.com/zh/model-studio/text-rerank-api) for more details
+
+### Using Instruction (qwen3-rerank only)
+
+```ts
+// Custom instruction for semantic similarity ranking
+const model = qwen.rerankingModel("qwen3-rerank", {
+  instruct: "Retrieve semantically similar text."
+})
+
+// Default instruction (QA retrieval):
+// "Given a web search query, retrieve relevant passages that answer the query."
+```
 
 ## Examples
 

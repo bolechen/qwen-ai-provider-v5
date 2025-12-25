@@ -193,8 +193,9 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     )
 
   // Create a reranking model instance.
-  // Note: Reranking uses DashScope native API, not OpenAI compatible mode.
-  // The baseURL is extracted without /compatible-mode/v1 suffix.
+  // Note: qwen3-rerank uses OpenAI-compatible API (/compatible-mode/v1/rerank)
+  //       gte-rerank models use DashScope native API (/api/v1/services/rerank/...)
+  // The baseURL is extracted without /compatible-mode/v1 suffix for flexibility.
   const createRerankingModel = (
     modelId: QwenRerankingModelId,
     settings: QwenRerankingSettings = {},

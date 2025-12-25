@@ -23,10 +23,10 @@ export interface QwenRerankingConfig {
 }
 
 /**
- * Response schema for DashScope native reranking API.
+ * Response schema for DashScope native reranking API (gte-rerank models).
  * The API returns results wrapped in output.results, sorted by relevance score.
  */
-const qwenRerankingResponseSchema = z.object({
+const dashscopeRerankingResponseSchema = z.object({
   output: z.object({
     results: z.array(
       z.object({
@@ -47,6 +47,37 @@ const qwenRerankingResponseSchema = z.object({
     .optional(),
   request_id: z.string().optional(),
 })
+
+/**
+ * Response schema for OpenAI-compatible reranking API (qwen3-rerank model).
+ */
+const openaiCompatibleRerankingResponseSchema = z.object({
+  results: z.array(
+    z.object({
+      index: z.number(),
+      relevance_score: z.number(),
+      document: z
+        .object({
+          text: z.string(),
+        })
+        .nullish(),
+    }),
+  ),
+  usage: z
+    .object({
+      total_tokens: z.number().optional(),
+    })
+    .optional(),
+  id: z.string().optional(),
+})
+
+/**
+ * Check if a model uses the OpenAI-compatible API format.
+ * qwen3-rerank uses the OpenAI-compatible endpoint.
+ */
+function usesOpenAICompatibleAPI(modelId: string): boolean {
+  return modelId.startsWith("qwen3-rerank")
+}
 
 export class QwenRerankingModel implements RerankingModelV3 {
   readonly specificationVersion = "v3"
@@ -97,6 +128,120 @@ export class QwenRerankingModel implements RerankingModelV3 {
     const providerOptionsName = this.config.provider.split(".")[0].trim()
     const specificProviderOptions = providerOptions?.[providerOptionsName]
 
+    const isOpenAICompatible = usesOpenAICompatibleAPI(this.modelId)
+
+    if (isOpenAICompatible) {
+      // qwen3-rerank uses OpenAI-compatible format
+      return this.doRerankOpenAICompatible({
+        documentTexts,
+        query,
+        topN,
+        headers,
+        abortSignal,
+        specificProviderOptions,
+      })
+    }
+    else {
+      // gte-rerank models use DashScope native format
+      return this.doRerankDashScope({
+        documentTexts,
+        query,
+        topN,
+        headers,
+        abortSignal,
+        specificProviderOptions,
+      })
+    }
+  }
+
+  /**
+   * Rerank using OpenAI-compatible API format (for qwen3-rerank).
+   * Endpoint: /compatible-mode/v1/rerank
+   */
+  private async doRerankOpenAICompatible(options: {
+    documentTexts: string[]
+    query: string
+    topN?: number
+    headers?: Record<string, string | undefined>
+    abortSignal?: AbortSignal
+    specificProviderOptions?: Record<string, unknown>
+  }): Promise<Awaited<ReturnType<RerankingModelV3["doRerank"]>>> {
+    const {
+      documentTexts,
+      query,
+      topN,
+      headers,
+      abortSignal,
+      specificProviderOptions,
+    } = options
+
+    // Build request body in OpenAI-compatible format
+    const body: Record<string, unknown> = {
+      model: this.modelId,
+      documents: documentTexts,
+      query,
+      ...specificProviderOptions,
+    }
+
+    if (topN != null) {
+      body.top_n = topN
+    }
+    if (this.settings.instruct != null) {
+      body.instruct = this.settings.instruct
+    }
+
+    // qwen3-rerank uses OpenAI-compatible endpoint
+    // Note: endpoint is /compatible-api/v1/reranks (not /compatible-mode/v1/rerank)
+    const url = `${this.config.baseURL}/compatible-api/v1/reranks`
+
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url,
+      headers: combineHeaders(this.config.headers(), headers),
+      body,
+      failedResponseHandler: createJsonErrorResponseHandler(
+        this.config.errorStructure ?? defaultQwenErrorStructure,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        openaiCompatibleRerankingResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+    })
+
+    return {
+      ranking: response.results.map(result => ({
+        index: result.index,
+        relevanceScore: result.relevance_score,
+      })),
+      response: {
+        id: response.id,
+        headers: responseHeaders,
+      },
+      warnings: [],
+    }
+  }
+
+  /**
+   * Rerank using DashScope native API format (for gte-rerank models).
+   * Endpoint: /api/v1/services/rerank/text-rerank/text-rerank
+   */
+  private async doRerankDashScope(options: {
+    documentTexts: string[]
+    query: string
+    topN?: number
+    headers?: Record<string, string | undefined>
+    abortSignal?: AbortSignal
+    specificProviderOptions?: Record<string, unknown>
+  }): Promise<Awaited<ReturnType<RerankingModelV3["doRerank"]>>> {
+    const {
+      documentTexts,
+      query,
+      topN,
+      headers,
+      abortSignal,
+      specificProviderOptions,
+    } = options
+
     // Build parameters object (only include defined values)
     const parameters: Record<string, unknown> = {}
     if (topN != null) {
@@ -117,11 +262,9 @@ export class QwenRerankingModel implements RerankingModelV3 {
       ...specificProviderOptions,
     }
 
-    // DashScope reranking uses native API, not OpenAI compatible mode
-    // Endpoint: /api/v1/services/rerank/text-rerank/text-rerank
+    // DashScope reranking uses native API endpoint
     const url = `${this.config.baseURL}/api/v1/services/rerank/text-rerank/text-rerank`
 
-    // Post the JSON payload to the API endpoint.
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
       headers: combineHeaders(this.config.headers(), headers),
@@ -130,13 +273,12 @@ export class QwenRerankingModel implements RerankingModelV3 {
         this.config.errorStructure ?? defaultQwenErrorStructure,
       ),
       successfulResponseHandler: createJsonResponseHandler(
-        qwenRerankingResponseSchema,
+        dashscopeRerankingResponseSchema,
       ),
       abortSignal,
       fetch: this.config.fetch,
     })
 
-    // Map response to V3 format
     return {
       ranking: response.output.results.map(result => ({
         index: result.index,
