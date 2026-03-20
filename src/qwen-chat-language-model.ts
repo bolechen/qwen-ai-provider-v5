@@ -1,5 +1,4 @@
 import type {
-  APICallError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
@@ -16,7 +15,7 @@ import type {
 import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
 import type { QwenErrorStructure } from "./qwen-error"
 import type { MetadataExtractor } from "./qwen-metadata-extractor"
-import { InvalidResponseDataError } from "@ai-sdk/provider"
+import { APICallError, InvalidResponseDataError } from "@ai-sdk/provider"
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -63,6 +62,7 @@ const QwenChatResponseSchema = z.object({
         role: z.literal("assistant").nullish(),
         content: z.string().nullish(),
         reasoning_content: z.string().nullish(),
+        reasoning: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -338,10 +338,11 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
     const content: LanguageModelV3Content[] = []
 
     // Add reasoning content if present
-    if (choice.message.reasoning_content) {
+    const reasoningText = choice.message.reasoning_content ?? choice.message.reasoning
+    if (reasoningText) {
       content.push({
         type: "reasoning",
-        text: choice.message.reasoning_content,
+        text: reasoningText,
       })
     }
 
@@ -472,7 +473,21 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
     const metadataExtractor
       = this.config.metadataExtractor?.createStreamExtractor()
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
+    const shouldRetryQwenStreamRequest = (error: unknown): boolean => {
+      if (!APICallError.isInstance(error))
+        return false
+      if (error.statusCode !== 500)
+        return false
+
+      const message = String(error.message ?? "")
+      return (
+        message.includes("list index out of range")
+        && (message.includes("InternalServerError") || message.toLowerCase().includes("internal server error"))
+      )
+    }
+
+    const request = () => postJsonToApi({
       url: this.config.url({
         path: "/chat/completions",
         modelId: this.modelId,
@@ -486,6 +501,26 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     })
+
+    const maxRetries = 3
+    let responseHeaders: Record<string, string> | undefined
+    let response: any
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await request()
+        responseHeaders = result.responseHeaders
+        response = result.value
+        break
+      }
+      catch (error) {
+        if (attempt === maxRetries || !shouldRetryQwenStreamRequest(error)) {
+          throw error
+        }
+        // Keep it short: retry only for the known Qwen stream boundary failure.
+        await sleep(100 * (attempt + 1))
+      }
+    }
 
     const toolCalls: Array<{
       id: string
@@ -518,6 +553,51 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
 
             // Handle provider error objects streamed as chunks
             if ((value as any)?.object === "error") {
+              const message = (value as any)?.message
+              const isQwenListIndexOutOfRange
+                = typeof message === "string"
+                  && message.includes("list index out of range")
+                  && (message.includes("InternalServerError")
+                    || message.toLowerCase().includes("internal server error")
+                    || message.includes("500"))
+
+              if (isQwenListIndexOutOfRange) {
+                // Try to recover any incomplete tool-call arguments (missing trailing `}`).
+                let recoveredAny = false
+                for (let i = 0; i < toolCalls.length; i++) {
+                  const toolCall = toolCalls[i]
+                  if (toolCall == null || toolCall.hasFinished)
+                    continue
+
+                  const recovered = recoverToolCallArguments(toolCall.arguments)
+                  if (recovered == null)
+                    continue
+
+                  toolCall.arguments = recovered
+                  const parsed = parseToolCallArguments(recovered)
+                  if (parsed == null)
+                    continue
+
+                  controller.enqueue({
+                    type: "tool-input-end",
+                    id: toolCall.id,
+                  })
+                  controller.enqueue({
+                    type: "tool-call",
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    input: toolCall.arguments,
+                  })
+                  toolCall.hasFinished = true
+                  recoveredAny = true
+                }
+
+                if (recoveredAny) {
+                  finishReason = { unified: "tool-calls", raw: "tool_calls" }
+                  return
+                }
+              }
+
               controller.enqueue({ type: "error", error: (value as any).message })
               return
             }
@@ -554,14 +634,14 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
               finishReason = mapQwenFinishReason(choice.finish_reason)
             }
 
-            if (choice?.delta == null) {
-              return
-            }
+            const delta = choice?.delta
 
-            const delta = choice.delta
+            if (delta == null)
+              return
 
             // Handle reasoning content
-            if (delta.reasoning_content != null) {
+            const reasoningText = delta.reasoning_content ?? delta.reasoning
+            if (reasoningText != null) {
               if (!reasoningId) {
                 reasoningId = generateId()
                 controller.enqueue({
@@ -572,7 +652,7 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: "reasoning-delta",
                 id: reasoningId,
-                delta: delta.reasoning_content,
+                delta: reasoningText,
               })
             }
 
@@ -640,7 +720,8 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
                     })
                   }
 
-                  if (isParsableJson(toolCall.arguments)) {
+                  const parsed = parseToolCallArguments(toolCall.arguments)
+                  if (parsed != null) {
                     controller.enqueue({
                       type: "tool-input-end",
                       id: toolCall.id,
@@ -673,7 +754,8 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
                   delta: toolCallDelta.function?.arguments ?? "",
                 })
 
-                if (isParsableJson(toolCall.arguments)) {
+                const parsed = parseToolCallArguments(toolCall.arguments)
+                if (parsed != null) {
                   controller.enqueue({
                     type: "tool-input-end",
                     id: toolCall.id,
@@ -697,6 +779,27 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
             }
             if (reasoningId) {
               controller.enqueue({ type: "reasoning-end", id: reasoningId })
+            }
+
+            // Finalize any remaining tool calls at end-of-stream.
+            for (let i = 0; i < toolCalls.length; i++) {
+              const toolCall = toolCalls[i]
+              if (toolCall == null || toolCall.hasFinished)
+                continue
+              if (parseToolCallArguments(toolCall.arguments) == null)
+                continue
+
+              controller.enqueue({
+                type: "tool-input-end",
+                id: toolCall.id,
+              })
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                input: toolCall.arguments,
+              })
+              toolCall.hasFinished = true
             }
 
             // Emit final finish event
@@ -733,6 +836,7 @@ function createQwenChatChunkSchema<ERROR_SCHEMA extends z.ZodType>(
               role: z.enum(["assistant"]).nullish(),
               content: z.string().nullish(),
               reasoning_content: z.string().nullish(),
+              reasoning: z.string().nullish(),
               tool_calls: z
                 .array(
                   z.object({
@@ -760,4 +864,40 @@ function createQwenChatChunkSchema<ERROR_SCHEMA extends z.ZodType>(
     }),
     errorSchema,
   ])
+}
+
+function parseToolCallArguments(rawArguments: string): unknown | null {
+  const trimmed = rawArguments.trim()
+  if (trimmed.length === 0)
+    return null
+
+  // Tool inputs are expected to be JSON objects/arrays.
+  const isObjectLike = trimmed.startsWith("{") || trimmed.startsWith("[")
+  const hasClosing = trimmed.endsWith("}") || trimmed.endsWith("]")
+  if (!isObjectLike || !hasClosing)
+    return null
+
+  if (!isParsableJson(trimmed))
+    return null
+  try {
+    return JSON.parse(trimmed) as unknown
+  }
+  catch {
+    return null
+  }
+}
+
+/**
+ * Recovery-only parsing for the known Qwen stream failure mode:
+ * the stream ends with missing trailing `}` and the backend returns
+ * 500 + "list index out of range".
+ */
+function recoverToolCallArguments(rawArguments: string): string | null {
+  const trimmedEnd = rawArguments.trimEnd()
+  if (trimmedEnd.length === 0)
+    return null
+  if (trimmedEnd.endsWith("}"))
+    return rawArguments
+  const recovered = `${trimmedEnd}}`
+  return recovered
 }
