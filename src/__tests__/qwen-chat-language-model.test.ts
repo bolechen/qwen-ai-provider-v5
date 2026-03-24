@@ -170,6 +170,30 @@ describe("doGenerate", () => {
     })
   })
 
+  it("should extract reasoning field when `reasoning` is used", async () => {
+    responseBody.choices[0].message = {
+      role: "assistant",
+      content: "Hello, World!",
+      reasoning: "This is the reasoning behind the response",
+    }
+
+    const provider = createTestProvider()
+    const model = provider("qwen-chat")
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    })
+
+    expect(content).toContainEqual({
+      type: "reasoning",
+      text: "This is the reasoning behind the response",
+    })
+    expect(content).toContainEqual({
+      type: "text",
+      text: "Hello, World!",
+    })
+  })
+
   it("should extract usage with V3 field names", async () => {
     responseBody.usage = {
       prompt_tokens: 20,
@@ -1015,6 +1039,162 @@ describe("doStream", () => {
         outputTokens: { total: 439, text: undefined, reasoning: undefined },
       },
     })
+  })
+
+  it("should stream reasoning field when `reasoning` is used", async () => {
+    responseChunks = [
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning":"Let me think"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning":" about this"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],`
+      + `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    })
+
+    const parts = await convertReadableStreamToArray(stream)
+
+    const reasoningDelta1 = parts.find(
+      p => p.type === "reasoning-delta" && p.delta === "Let me think",
+    )
+    const reasoningDelta2 = parts.find(
+      p => p.type === "reasoning-delta" && p.delta === " about this",
+    )
+    const textDelta1 = parts.find(
+      p => p.type === "text-delta" && p.delta === "Here's",
+    )
+    const textDelta2 = parts.find(
+      p => p.type === "text-delta" && p.delta === " my response",
+    )
+
+    expect(reasoningDelta1).toBeDefined()
+    expect(reasoningDelta2).toBeDefined()
+    expect(textDelta1).toBeDefined()
+    expect(textDelta2).toBeDefined()
+    expect(parts).toContainEqual({
+      type: "finish",
+      finishReason: { unified: "stop", raw: "stop" },
+      usage: {
+        inputTokens: { total: 18, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 439, text: undefined, reasoning: undefined },
+      },
+    })
+  })
+
+  it("should recover incomplete tool-call arguments on `500 + list index out of range`", async () => {
+    responseChunks = [
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"qwen-chat",`
+      + `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,`
+      + `"tool_calls":[{"index":0,"id":"call_recover_1","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\""}}]},`
+      + `"finish_reason":null}]}\n\n`,
+      `data: {"object":"error","message":"InternalServerError: list index out of range","type":"server_error","param":null,"code":null}\n\n`,
+      "data: [DONE]\n\n",
+    ]
+
+    const provider = createStreamingTestProvider()
+    const model = provider("qwen-chat")
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: "function",
+          name: "test-tool",
+          inputSchema: {
+            type: "object",
+            properties: { value: { type: "string" } },
+            required: ["value"],
+            additionalProperties: false,
+            $schema: "http://json-schema.org/draft-07/schema#",
+          },
+        },
+      ],
+    })
+
+    const parts = await convertReadableStreamToArray(stream)
+
+    expect(parts.find(p => p.type === "error")).toBeFalsy()
+    expect(parts).toContainEqual({
+      type: "tool-input-end",
+      id: "call_recover_1",
+    })
+    expect(parts).toContainEqual({
+      type: "tool-call",
+      toolCallId: "call_recover_1",
+      toolName: "test-tool",
+      input: "{\"value\":\"Sparkle Day\"}",
+    })
+    expect(parts).toContainEqual({
+      type: "finish",
+      finishReason: { unified: "tool-calls", raw: "tool_calls" },
+      usage: {
+        inputTokens: { total: undefined, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+      },
+    })
+  })
+
+  it("should retry doStream request on `500 + list index out of range`", async () => {
+    let attempts = 0
+
+    const provider = createQwen({
+      baseURL: "https://my.api.com/v1/",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      fetch: async (_url) => {
+        attempts++
+        if (attempts === 1) {
+          return new Response(
+            JSON.stringify({
+              object: "error",
+              message: "InternalServerError: list index out of range",
+              type: "server_error",
+              param: null,
+              code: null,
+            }),
+            { status: 500, headers: { "content-type": "application/json" } },
+          )
+        }
+
+        // Use the same response chunks as the default doStream test setup.
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+          start(controller) {
+            for (const chunk of responseChunks) {
+              controller.enqueue(encoder.encode(chunk))
+            }
+            controller.close()
+          },
+        })
+
+        return new Response(stream, {
+          headers: responseHeaders,
+        })
+      },
+    })
+
+    const model = provider("qwen-chat")
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    })
+
+    const parts = await convertReadableStreamToArray(stream)
+
+    expect(attempts).toBe(2)
+    expect(parts.find(p => p.type === "finish")).toBeTruthy()
   })
 
   it("should stream tool deltas with V3 format", async () => {
