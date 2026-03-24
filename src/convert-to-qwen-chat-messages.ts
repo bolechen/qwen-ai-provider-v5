@@ -140,12 +140,11 @@ export function convertToQwenChatMessages(
               })
               break
             }
-            case "file": // Add cases in v5
+            case "file":
             case "reasoning": {
-              // Ignore or handle these part types as needed
-              throw new UnsupportedFunctionalityError({
-                functionality: `${part.type} content parts in assistant messages`,
-              })
+              // These parts are returned by models but not needed in API requests.
+              // Silently ignore to avoid breaking multi-turn conversations.
+              break
             }
             case "tool-result": {
               // Tool results should not appear in assistant messages

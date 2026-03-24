@@ -168,6 +168,62 @@ describe("tool calls", () => {
     ).toThrow()
   })
 
+  it("should silently ignore reasoning parts in assistant messages", () => {
+    const result = convertToQwenChatMessages([
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Let me think about this..." },
+          { type: "text", text: "The answer is 42." },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "assistant",
+        content: "The answer is 42.",
+      },
+    ])
+  })
+
+  it("should silently ignore reasoning-only assistant messages", () => {
+    const result = convertToQwenChatMessages([
+      {
+        role: "assistant",
+        content: [
+          { type: "reasoning", text: "Deep thought..." },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "assistant",
+        content: "",
+      },
+    ])
+  })
+
+  it("should silently ignore file parts in assistant messages", () => {
+    const result = convertToQwenChatMessages([
+      {
+        role: "assistant",
+        content: [
+          { type: "file", data: new Uint8Array([1, 2]), mediaType: "image/png" } as any,
+          { type: "text", text: "Here is the result." },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "assistant",
+        content: "Here is the result.",
+      },
+    ])
+  })
+
   it("should throw on unknown assistant content part types", () => {
     expect(() =>
       convertToQwenChatMessages([
