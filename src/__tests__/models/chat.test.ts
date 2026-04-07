@@ -2,8 +2,8 @@
 import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { QwenChatLanguageModel } from "../qwen-chat-language-model"
-import { createQwen } from "../qwen-provider"
+import { QwenChatLanguageModel } from "../../models/chat"
+import { createQwen } from "../../provider"
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: "user", content: [{ type: "text", text: "Hello" }] },
@@ -301,6 +301,7 @@ describe("doGenerate", () => {
 
     expect(requestBody).toStrictEqual({
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
     })
   })
@@ -316,6 +317,7 @@ describe("doGenerate", () => {
 
     expect(requestBody).toStrictEqual({
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
       user: "test-user-id",
     })
@@ -335,6 +337,7 @@ describe("doGenerate", () => {
 
     expect(requestBody).toStrictEqual({
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
       someCustomOption: "test-value",
     })
@@ -354,6 +357,7 @@ describe("doGenerate", () => {
 
     expect(requestBody).toStrictEqual({
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
     })
   })
@@ -385,6 +389,7 @@ describe("doGenerate", () => {
 
     expect(requestBody).toStrictEqual({
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
       tools: [
         {
@@ -557,6 +562,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
       })
     })
@@ -573,6 +579,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         response_format: { type: "json_object" },
       })
@@ -616,6 +623,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         response_format: { type: "json_object" },
       })
@@ -668,6 +676,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         response_format: {
           type: "json_schema",
@@ -727,6 +736,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         response_format: {
           type: "json_schema",
@@ -776,6 +786,7 @@ describe("doGenerate", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         response_format: {
           type: "json_object",
@@ -793,7 +804,7 @@ describe("doGenerate", () => {
     })
 
     expect(request).toMatchObject({
-      body: "{\"model\":\"qwen-chat\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}",
+      body: "{\"model\":\"qwen-chat\",\"extra_body\":{\"enable_thinking\":false},\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}",
     })
   })
 })
@@ -1125,7 +1136,10 @@ describe("doStream", () => {
 
     const parts = await convertReadableStreamToArray(stream)
 
-    expect(parts.find(p => p.type === "error")).toBeFalsy()
+    expect(parts).toContainEqual({
+      type: "error",
+      error: "InternalServerError: list index out of range",
+    })
     expect(parts).toContainEqual({
       type: "tool-input-end",
       id: "call_recover_1",
@@ -1138,7 +1152,7 @@ describe("doStream", () => {
     })
     expect(parts).toContainEqual({
       type: "finish",
-      finishReason: { unified: "tool-calls", raw: "tool_calls" },
+      finishReason: { unified: "other", raw: undefined },
       usage: {
         inputTokens: { total: undefined, noCache: undefined, cacheRead: undefined, cacheWrite: undefined },
         outputTokens: { total: undefined, text: undefined, reasoning: undefined },
@@ -1146,7 +1160,7 @@ describe("doStream", () => {
     })
   })
 
-  it("should retry doStream request on `500 + list index out of range`", async () => {
+  it("should throw on first `500 + list index out of range` for doStream request", async () => {
     let attempts = 0
 
     const provider = createQwen({
@@ -1187,14 +1201,10 @@ describe("doStream", () => {
     })
 
     const model = provider("qwen-chat")
-    const { stream } = await model.doStream({
+    await expect(model.doStream({
       prompt: TEST_PROMPT,
-    })
-
-    const parts = await convertReadableStreamToArray(stream)
-
-    expect(attempts).toBe(2)
-    expect(parts.find(p => p.type === "finish")).toBeTruthy()
+    })).rejects.toThrow("InternalServerError: list index out of range")
+    expect(attempts).toBe(1)
   })
 
   it("should stream tool deltas with V3 format", async () => {
@@ -1422,7 +1432,7 @@ describe("doStream", () => {
       type: "tool-call",
       toolCallId: "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
       toolName: "searchGoogle",
-      input: "{\"query\": \"latest news on ai\"}",
+      input: "{\"query\":\"latest news on ai\"}",
     })
   })
 
@@ -1534,6 +1544,7 @@ describe("doStream", () => {
         include_usage: true,
       },
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
     })
   })
@@ -1579,6 +1590,7 @@ describe("doStream", () => {
         include_usage: true,
       },
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
       someCustomOption: "test-value",
     })
@@ -1602,6 +1614,7 @@ describe("doStream", () => {
         include_usage: true,
       },
       model: "qwen-chat",
+      extra_body: { enable_thinking: false },
       messages: [{ role: "user", content: "Hello" }],
     })
   })
@@ -1615,7 +1628,7 @@ describe("doStream", () => {
     })
 
     expect(request).toMatchObject({
-      body: "{\"model\":\"qwen-chat\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}",
+      body: "{\"model\":\"qwen-chat\",\"extra_body\":{\"enable_thinking\":false},\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"stream\":true,\"stream_options\":{\"include_usage\":true}}",
     })
   })
 })
@@ -1923,6 +1936,7 @@ describe("metadata extraction", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
       })
     })
@@ -1993,6 +2007,7 @@ describe("metadata extraction", () => {
 
       expect(requestBody).toStrictEqual({
         model: "qwen-plus",
+        extra_body: { enable_thinking: false },
         messages: [{ role: "user", content: "Hello" }],
         stream: true,
         stream_options: {

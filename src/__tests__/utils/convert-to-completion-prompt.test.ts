@@ -1,6 +1,6 @@
 import { InvalidPromptError, UnsupportedFunctionalityError } from "@ai-sdk/provider"
 import { describe, expect, it } from "vitest"
-import { convertToQwenCompletionPrompt } from "../convert-to-qwen-completion-prompt"
+import { convertToQwenCompletionPrompt } from "../../utils/convert-to-completion-prompt"
 
 describe("convertToQwenCompletionPrompt", () => {
   it("returns raw text when inputFormat is 'prompt' with single user text", () => {
@@ -118,9 +118,10 @@ describe("convertToQwenCompletionPrompt", () => {
     ).toThrow(UnsupportedFunctionalityError)
   })
 
-  it("throws on assistant file/tool-result content parts", () => {
+  it("throws on assistant file/reasoning/tool-result content parts", () => {
     for (const part of [
       { type: "file", mediaType: "image/png", data: new Uint8Array([1]) },
+      { type: "reasoning", text: "think" },
       { type: "tool-result", toolCallId: "x", toolName: "y", output: { type: "text", value: "z" } },
     ] as const) {
       expect(() =>
@@ -133,23 +134,5 @@ describe("convertToQwenCompletionPrompt", () => {
         }),
       ).toThrow(UnsupportedFunctionalityError)
     }
-  })
-
-  it("silently ignores reasoning parts in assistant messages", () => {
-    const { prompt } = convertToQwenCompletionPrompt({
-      inputFormat: "messages",
-      prompt: [
-        { role: "user", content: [{ type: "text", text: "Hi" }] },
-        {
-          role: "assistant",
-          content: [
-            { type: "reasoning", text: "thinking..." } as any,
-            { type: "text", text: "Hello!" },
-          ],
-        },
-      ],
-    })
-
-    expect(prompt).toBe("user:\nHi\n\nassistant:\nHello!\n\nassistant:\n")
   })
 })

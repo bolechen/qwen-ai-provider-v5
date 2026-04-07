@@ -1,27 +1,27 @@
 import { loadApiKey } from "@ai-sdk/provider-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { QwenChatLanguageModel } from "../qwen-chat-language-model"
-import { QwenCompletionLanguageModel } from "../qwen-completion-language-model"
-import { QwenEmbeddingModel } from "../qwen-embedding-model"
-import { createQwen } from "../qwen-provider"
-import { QwenRerankingModel } from "../qwen-reranking-model"
+import { QwenChatLanguageModel } from "../models/chat"
+import { QwenCompletionLanguageModel } from "../models/completion"
+import { QwenEmbeddingModel } from "../models/embedding"
+import { QwenRerankingModel } from "../models/reranking"
+import { createQwen } from "../provider"
 
 vi.stubEnv("DASHSCOPE_API_KEY", "test-api-key-123")
 
 // Mock the model classes
-vi.mock("../qwen-chat-language-model", () => ({
+vi.mock("../models/chat", () => ({
   QwenChatLanguageModel: vi.fn(),
 }))
 
-vi.mock("../qwen-completion-language-model", () => ({
+vi.mock("../models/completion", () => ({
   QwenCompletionLanguageModel: vi.fn(),
 }))
 
-vi.mock("../qwen-embedding-model", () => ({
+vi.mock("../models/embedding", () => ({
   QwenEmbeddingModel: vi.fn(),
 }))
 
-vi.mock("../qwen-reranking-model", () => ({
+vi.mock("../models/reranking", () => ({
   QwenRerankingModel: vi.fn(),
 }))
 

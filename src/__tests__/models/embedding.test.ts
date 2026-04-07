@@ -1,6 +1,6 @@
 import { TooManyEmbeddingValuesForCallError } from "@ai-sdk/provider"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createQwen } from "../qwen-provider"
+import { createQwen } from "../../provider"
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3, 0.4, 0.5],
@@ -168,5 +168,46 @@ describe("doEmbed", () => {
     await expect(
       async () => await model.doEmbed({ values: many }),
     ).rejects.toBeInstanceOf(TooManyEmbeddingValuesForCallError)
+  })
+
+  it("should throw on retryable errors from embed request", async () => {
+    let fetchCalls = 0
+
+    const provider = createQwen({
+      baseURL: "https://my.api.com/v1/",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      fetch: async (_url, init) => {
+        fetchCalls++
+        if (init?.body) {
+          requestBody = JSON.parse(init.body as string)
+        }
+
+        if (fetchCalls === 1) {
+          return new Response(JSON.stringify({
+            object: "error",
+            message: "Service Unavailable",
+            type: "ServiceUnavailable",
+            param: null,
+            code: null,
+          }), {
+            status: 503,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        return new Response(JSON.stringify(responseBody), {
+          headers: responseHeaders,
+        })
+      },
+    })
+
+    const model = provider.textEmbeddingModel("text-embedding-3-large")
+    await expect(model.doEmbed({ values: testValues })).rejects.toThrow(
+      "Service Unavailable",
+    )
+    expect(fetchCalls).toBe(1)
+    expect(requestBody).toMatchObject({ model: "text-embedding-3-large" })
   })
 })

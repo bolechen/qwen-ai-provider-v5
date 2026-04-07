@@ -7,18 +7,18 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3Warning,
-} from "@ai-sdk/provider"
+} from '@ai-sdk/provider'
 import type {
   FetchFunction,
   ParseResult,
   ResponseHandler,
-} from "@ai-sdk/provider-utils"
+} from '@ai-sdk/provider-utils'
 import type {
   QwenCompletionModelId,
   QwenCompletionSettings,
-} from "./qwen-completion-settings"
-import type { QwenErrorStructure } from "./qwen-error"
-import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
+} from '../config/completion'
+import type { QwenErrorStructure } from '../error'
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider'
 import {
   combineHeaders,
   createEventSourceResponseHandler,
@@ -26,13 +26,13 @@ import {
   createJsonResponseHandler,
   generateId,
   postJsonToApi,
-} from "@ai-sdk/provider-utils"
-import { z } from "zod"
-import { buildUsage } from "./build-usage"
-import { convertToQwenCompletionPrompt } from "./convert-to-qwen-completion-prompt"
-import { getResponseMetadata } from "./get-response-metadata"
-import { mapQwenFinishReason } from "./map-qwen-finish-reason"
-import { defaultQwenErrorStructure } from "./qwen-error"
+} from '@ai-sdk/provider-utils'
+import { z } from 'zod'
+import { defaultQwenErrorStructure } from '../error'
+import { buildUsage } from '../utils/build-usage'
+import { convertToQwenCompletionPrompt } from '../utils/convert-to-completion-prompt'
+import { getResponseMetadata } from '../utils/get-response-metadata'
+import { mapQwenFinishReason } from '../utils/map-finish-reason'
 
 interface QwenCompletionConfig {
   provider: string
@@ -68,7 +68,7 @@ const QwenCompletionResponseSchema = z.object({
  * Implements the LanguageModelV3 interface and handles regular, streaming completions.
  */
 export class QwenCompletionLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = "v3"
+  readonly specificationVersion = 'v3'
   readonly supportedUrls: Record<string, RegExp[]> = {}
 
   readonly modelId: QwenCompletionModelId
@@ -107,7 +107,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
   }
 
   private get providerOptionsName(): string {
-    return this.config.provider.split(".")[0].trim()
+    return this.config.provider.split('.')[0].trim()
   }
 
   /**
@@ -133,35 +133,35 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
     // Warn if unsupported settings are used.
     if (topK != null) {
       warnings.push({
-        type: "unsupported",
-        feature: "topK",
+        type: 'unsupported',
+        feature: 'topK',
       })
     }
 
-    if (responseFormat != null && responseFormat.type !== "text") {
+    if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
-        type: "unsupported",
-        feature: "responseFormat",
-        details: "JSON response format is not supported.",
+        type: 'unsupported',
+        feature: 'responseFormat',
+        details: 'JSON response format is not supported.',
       })
     }
 
     // Tools are not supported in completion model
     if (tools && tools.length > 0) {
       throw new UnsupportedFunctionalityError({
-        functionality: "tools",
+        functionality: 'tools',
       })
     }
 
     if (toolChoice) {
       throw new UnsupportedFunctionalityError({
-        functionality: "toolChoice",
+        functionality: 'toolChoice',
       })
     }
 
     // Convert prompt to Qwen-specific prompt info.
     const { prompt: completionPrompt, stopSequences }
-      = convertToQwenCompletionPrompt({ prompt, inputFormat: "prompt" })
+      = convertToQwenCompletionPrompt({ prompt, inputFormat: 'prompt' })
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])]
 
@@ -196,7 +196,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
    */
   async doGenerate(
     options: LanguageModelV3CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV3["doGenerate"]>>> {
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options)
 
     const {
@@ -205,7 +205,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
       rawValue: parsedBody,
     } = await postJsonToApi({
       url: this.config.url({
-        path: "/completions",
+        path: '/completions',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
@@ -225,7 +225,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
 
     if (choice.text) {
       content.push({
-        type: "text",
+        type: 'text',
         text: choice.text,
       })
     }
@@ -255,7 +255,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
    */
   async doStream(
     options: LanguageModelV3CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV3["doStream"]>>> {
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = this.getArgs(options)
 
     const body = {
@@ -265,7 +265,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
-        path: "/completions",
+        path: '/completions',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
@@ -278,7 +278,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     })
 
-    let finishReason: LanguageModelV3FinishReason = { unified: "other", raw: undefined }
+    let finishReason: LanguageModelV3FinishReason = { unified: 'other', raw: undefined }
     let usage: LanguageModelV3Usage = buildUsage(undefined, undefined)
     let isFirstChunk = true
     let hasStreamStarted = false
@@ -292,22 +292,22 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
         >({
           transform(chunk, controller) {
             if (!chunk.success) {
-              controller.enqueue({ type: "error", error: chunk.error })
+              controller.enqueue({ type: 'error', error: chunk.error })
               return
             }
 
             const value = chunk.value
 
             // Handle provider error objects streamed as chunks
-            if ((value as any)?.object === "error") {
-              controller.enqueue({ type: "error", error: (value as any).message })
+            if ((value as any)?.object === 'error') {
+              controller.enqueue({ type: 'error', error: (value as any).message })
               return
             }
 
             if (!hasStreamStarted) {
               hasStreamStarted = true
               controller.enqueue({
-                type: "stream-start",
+                type: 'stream-start',
                 warnings,
               })
             }
@@ -316,7 +316,7 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
               isFirstChunk = false
               const metadata = getResponseMetadata(value)
               controller.enqueue({
-                type: "response-metadata",
+                type: 'response-metadata',
                 id: metadata.id,
                 timestamp: metadata.timestamp,
                 modelId: metadata.modelId,
@@ -339,10 +339,10 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
             if (choice?.text != null) {
               if (!textId) {
                 textId = generateId()
-                controller.enqueue({ type: "text-start", id: textId })
+                controller.enqueue({ type: 'text-start', id: textId })
               }
               controller.enqueue({
-                type: "text-delta",
+                type: 'text-delta',
                 id: textId,
                 delta: choice.text,
               })
@@ -351,11 +351,11 @@ export class QwenCompletionLanguageModel implements LanguageModelV3 {
 
           flush(controller) {
             if (textId) {
-              controller.enqueue({ type: "text-end", id: textId })
+              controller.enqueue({ type: 'text-end', id: textId })
             }
 
             controller.enqueue({
-              type: "finish",
+              type: 'finish',
               finishReason,
               usage,
             })

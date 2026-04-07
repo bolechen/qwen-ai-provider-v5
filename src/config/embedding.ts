@@ -1,7 +1,7 @@
 /**
  * Supported embedding model IDs.
  */
-export type QwenEmbeddingModelId = "text-embedding-v3" | (string & {})
+export type QwenEmbeddingModelId = 'text-embedding-v3' | (string & {})
 
 /**
  * Settings configuration for Qwen text embeddings.
@@ -27,5 +27,5 @@ export interface QwenEmbeddingSettings {
    * Specifies the type of output vectors.
    * Valid values: "dense", "sparse", or "dense&sparse". Default is "dense".
    */
-  output_type?: "dense" | "sparse" | "dense&sparse"
+  output_type?: 'dense' | 'sparse' | 'dense&sparse'
 }

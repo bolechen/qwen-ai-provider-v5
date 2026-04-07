@@ -2,26 +2,26 @@ import type {
   EmbeddingModelV3,
   LanguageModelV3,
   RerankingModelV3,
-} from "@ai-sdk/provider"
-import type { FetchFunction } from "@ai-sdk/provider-utils"
-import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
+} from '@ai-sdk/provider'
+import type { FetchFunction } from '@ai-sdk/provider-utils'
+import type { QwenChatModelId, QwenChatSettings } from './config/chat'
 import type {
   QwenCompletionModelId,
   QwenCompletionSettings,
-} from "./qwen-completion-settings"
+} from './config/completion'
 import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
-} from "./qwen-embedding-settings"
+} from './config/embedding'
 import type {
   QwenRerankingModelId,
   QwenRerankingSettings,
-} from "./qwen-reranking-settings"
-import { loadApiKey, withoutTrailingSlash } from "@ai-sdk/provider-utils"
-import { QwenChatLanguageModel } from "./qwen-chat-language-model"
-import { QwenCompletionLanguageModel } from "./qwen-completion-language-model"
-import { QwenEmbeddingModel } from "./qwen-embedding-model"
-import { QwenRerankingModel } from "./qwen-reranking-model"
+} from './config/reranking'
+import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils'
+import { QwenChatLanguageModel } from './models/chat'
+import { QwenCompletionLanguageModel } from './models/completion'
+import { QwenEmbeddingModel } from './models/embedding'
+import { QwenRerankingModel } from './models/reranking'
 
 /**
  * QwenProvider function type and its properties.
@@ -125,15 +125,15 @@ export interface QwenProviderSettings {
 export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
   // Remove trailing slash from the base URL.
   const baseURL = withoutTrailingSlash(
-    options.baseURL ?? "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    options.baseURL ?? 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
   )
 
   // Build headers including the API key.
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: "DASHSCOPE_API_KEY",
-      description: "Qwen API key",
+      environmentVariableName: 'DASHSCOPE_API_KEY',
+      description: 'Qwen API key',
     })}`,
     ...options.headers,
   })
@@ -168,7 +168,7 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     modelId: QwenChatModelId,
     settings: QwenChatSettings = {},
   ) =>
-    new QwenChatLanguageModel(modelId, settings, getCommonModelConfig("chat"))
+    new QwenChatLanguageModel(modelId, settings, getCommonModelConfig('chat'))
 
   // Create a completion model instance.
   const createCompletionModel = (
@@ -178,7 +178,7 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     new QwenCompletionLanguageModel(
       modelId,
       settings,
-      getCommonModelConfig("completion"),
+      getCommonModelConfig('completion'),
     )
 
   // Create a text embedding model instance.
@@ -189,7 +189,7 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     new QwenEmbeddingModel(
       modelId,
       settings,
-      getCommonModelConfig("embedding"),
+      getCommonModelConfig('embedding'),
     )
 
   // Create a reranking model instance.
@@ -201,10 +201,10 @@ export function createQwen(options: QwenProviderSettings = {}): QwenProvider {
     settings: QwenRerankingSettings = {},
   ) => {
     // Extract the base domain from the baseURL (remove /compatible-mode/v1 if present)
-    const rerankBaseURL = (baseURL ?? "https://dashscope-intl.aliyuncs.com/compatible-mode/v1")
-      .replace(/\/compatible-mode\/v1$/, "")
+    const rerankBaseURL = (baseURL ?? 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
+      .replace(/\/compatible-mode\/v1$/, '')
     return new QwenRerankingModel(modelId, settings, {
-      provider: "qwen.reranking",
+      provider: 'qwen.reranking',
       baseURL: rerankBaseURL,
       headers: getHeaders,
       fetch: options.fetch,

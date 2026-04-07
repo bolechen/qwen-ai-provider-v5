@@ -1,4 +1,4 @@
-import type { JSONValue } from "@ai-sdk/provider"
+import type { JSONValue } from '@ai-sdk/provider'
 
 /**
  * Type representing a prompt for Qwen Chat built from an array of messages.
@@ -24,7 +24,7 @@ type JsonRecord<T = never> = Record<
  * System messages contain instructions/data set by the system.
  */
 export interface QwenSystemMessage extends JsonRecord {
-  role: "system"
+  role: 'system'
   content: string
 }
 
@@ -32,7 +32,7 @@ export interface QwenSystemMessage extends JsonRecord {
  * User messages sent by the user to the model.
  */
 export interface QwenUserMessage extends JsonRecord<QwenContentPart> {
-  role: "user"
+  role: 'user'
   content: string | Array<QwenContentPart>
 }
 
@@ -45,7 +45,7 @@ export type QwenContentPart = QwenContentPartText | QwenContentPartImage
  * Message part that contains an image URL.
  */
 export interface QwenContentPartImage extends JsonRecord {
-  type: "image_url"
+  type: 'image_url'
   image_url: { url: string }
 }
 
@@ -53,7 +53,7 @@ export interface QwenContentPartImage extends JsonRecord {
  * Message part that contains text.
  */
 export interface QwenContentPartText extends JsonRecord {
-  type: "text"
+  type: 'text'
   text: string
 }
 
@@ -61,7 +61,7 @@ export interface QwenContentPartText extends JsonRecord {
  * Assistant messages response from the model.
  */
 export interface QwenAssistantMessage extends JsonRecord<QwenMessageToolCall> {
-  role: "assistant"
+  role: 'assistant'
   content?: string | null
   tool_calls?: Array<QwenMessageToolCall>
 }
@@ -70,7 +70,7 @@ export interface QwenAssistantMessage extends JsonRecord<QwenMessageToolCall> {
  * Represents a tool call embedded within an assistant message.
  */
 export interface QwenMessageToolCall extends JsonRecord {
-  type: "function"
+  type: 'function'
   id: string
   function: {
     arguments: string
@@ -82,7 +82,7 @@ export interface QwenMessageToolCall extends JsonRecord {
  * Represents the response from a tool.
  */
 export interface QwenToolMessage extends JsonRecord {
-  role: "tool"
+  role: 'tool'
   content: string
   tool_call_id: string
 }

@@ -1,19 +1,19 @@
-import type { EmbeddingModelV3 } from "@ai-sdk/provider"
-import type { FetchFunction } from "@ai-sdk/provider-utils"
+import type { EmbeddingModelV3 } from '@ai-sdk/provider'
+import type { FetchFunction } from '@ai-sdk/provider-utils'
 import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
-} from "./qwen-embedding-settings"
-import type { QwenErrorStructure } from "./qwen-error"
-import { TooManyEmbeddingValuesForCallError } from "@ai-sdk/provider"
+} from '../config/embedding'
+import type { QwenErrorStructure } from '../error'
+import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider'
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
-} from "@ai-sdk/provider-utils"
-import { z } from "zod"
-import { defaultQwenErrorStructure } from "./qwen-error"
+} from '@ai-sdk/provider-utils'
+import { z } from 'zod'
+import { defaultQwenErrorStructure } from '../error'
 
 interface QwenEmbeddingConfig {
   /**
@@ -41,7 +41,7 @@ const qwenTextEmbeddingResponseSchema = z.object({
 })
 
 export class QwenEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = "v3"
+  readonly specificationVersion = 'v3'
   readonly modelId: QwenEmbeddingModelId
 
   private readonly config: QwenEmbeddingConfig
@@ -86,8 +86,8 @@ export class QwenEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3["doEmbed"]>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3["doEmbed"]>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     // Validate that number of embeddings does not exceed maximum allowed.
     const maxEmbeddings = this.maxEmbeddingsPerCall ?? Number.POSITIVE_INFINITY
@@ -101,29 +101,27 @@ export class QwenEmbeddingModel implements EmbeddingModelV3 {
     }
 
     // Get provider-specific options if available
-    const providerOptionsName = this.config.provider.split(".")[0].trim()
+    const providerOptionsName = this.config.provider.split('.')[0].trim()
     const specificProviderOptions = providerOptions?.[providerOptionsName]
 
     // Post the JSON payload to the API endpoint.
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
-        path: "/embeddings",
+        path: '/embeddings',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
         input: values,
-        encoding_format: "float",
+        encoding_format: 'float',
         dimensions: this.settings.dimensions,
         user: this.settings.user,
         ...specificProviderOptions,
       },
-      // Handle response errors using the provided error structure.
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultQwenErrorStructure,
       ),
-      // Process successful responses based on a minimal schema.
       successfulResponseHandler: createJsonResponseHandler(
         qwenTextEmbeddingResponseSchema,
       ),

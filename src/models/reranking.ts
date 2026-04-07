@@ -1,18 +1,18 @@
-import type { RerankingModelV3 } from "@ai-sdk/provider"
-import type { FetchFunction } from "@ai-sdk/provider-utils"
-import type { QwenErrorStructure } from "./qwen-error"
+import type { RerankingModelV3 } from '@ai-sdk/provider'
+import type { FetchFunction } from '@ai-sdk/provider-utils'
 import type {
   QwenRerankingModelId,
   QwenRerankingSettings,
-} from "./qwen-reranking-settings"
+} from '../config/reranking'
+import type { QwenErrorStructure } from '../error'
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
-} from "@ai-sdk/provider-utils"
-import { z } from "zod"
-import { defaultQwenErrorStructure } from "./qwen-error"
+} from '@ai-sdk/provider-utils'
+import { z } from 'zod'
+import { defaultQwenErrorStructure } from '../error'
 
 export interface QwenRerankingConfig {
   provider: string
@@ -76,11 +76,11 @@ const openaiCompatibleRerankingResponseSchema = z.object({
  * qwen3-rerank uses the OpenAI-compatible endpoint.
  */
 function usesOpenAICompatibleAPI(modelId: string): boolean {
-  return modelId.startsWith("qwen3-rerank")
+  return modelId.startsWith('qwen3-rerank')
 }
 
 export class QwenRerankingModel implements RerankingModelV3 {
-  readonly specificationVersion = "v3"
+  readonly specificationVersion = 'v3'
   readonly modelId: QwenRerankingModelId
 
   private readonly config: QwenRerankingConfig
@@ -113,19 +113,19 @@ export class QwenRerankingModel implements RerankingModelV3 {
    * @returns Promise with ranking results sorted by relevance.
    */
   async doRerank(
-    options: Parameters<RerankingModelV3["doRerank"]>[0],
-  ): Promise<Awaited<ReturnType<RerankingModelV3["doRerank"]>>> {
+    options: Parameters<RerankingModelV3['doRerank']>[0],
+  ): Promise<Awaited<ReturnType<RerankingModelV3['doRerank']>>> {
     const { documents, query, topN, headers, abortSignal, providerOptions }
       = options
 
     // Convert documents to the format expected by DashScope API
     const documentTexts
-      = documents.type === "text"
+      = documents.type === 'text'
         ? documents.values
         : documents.values.map(doc => JSON.stringify(doc))
 
     // Get provider-specific options if available
-    const providerOptionsName = this.config.provider.split(".")[0].trim()
+    const providerOptionsName = this.config.provider.split('.')[0].trim()
     const specificProviderOptions = providerOptions?.[providerOptionsName]
 
     const isOpenAICompatible = usesOpenAICompatibleAPI(this.modelId)
@@ -165,7 +165,7 @@ export class QwenRerankingModel implements RerankingModelV3 {
     headers?: Record<string, string | undefined>
     abortSignal?: AbortSignal
     specificProviderOptions?: Record<string, unknown>
-  }): Promise<Awaited<ReturnType<RerankingModelV3["doRerank"]>>> {
+  }): Promise<Awaited<ReturnType<RerankingModelV3['doRerank']>>> {
     const {
       documentTexts,
       query,
@@ -232,7 +232,7 @@ export class QwenRerankingModel implements RerankingModelV3 {
     headers?: Record<string, string | undefined>
     abortSignal?: AbortSignal
     specificProviderOptions?: Record<string, unknown>
-  }): Promise<Awaited<ReturnType<RerankingModelV3["doRerank"]>>> {
+  }): Promise<Awaited<ReturnType<RerankingModelV3['doRerank']>>> {
     const {
       documentTexts,
       query,
