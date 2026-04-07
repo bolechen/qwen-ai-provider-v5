@@ -1,10 +1,10 @@
 import type {
   LanguageModelV3Prompt,
   SharedV3ProviderOptions,
-} from '@ai-sdk/provider'
-import type { QwenChatPrompt } from '../types/api-types'
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider'
-import { convertUint8ArrayToBase64, isParsableJson } from '@ai-sdk/provider-utils'
+} from "@ai-sdk/provider"
+import type { QwenChatPrompt } from "../types/api-types"
+import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
+import { convertUint8ArrayToBase64, isParsableJson } from "@ai-sdk/provider-utils"
 
 // JSDoc for helper function to extract Qwen options.
 /**
@@ -30,8 +30,8 @@ function parseToolCallArguments(rawArguments: string | null | undefined) {
     return null
 
   const candidates = [input]
-  const startsWithObject = input.startsWith('{')
-  const endsWithObject = input.endsWith('}')
+  const startsWithObject = input.startsWith("{")
+  const endsWithObject = input.endsWith("}")
 
   if (!startsWithObject && !endsWithObject) {
     candidates.push(`{${input}}`)
@@ -65,17 +65,17 @@ export function convertToQwenChatMessages(
   for (const { role, content, ...message } of prompt) {
     const options = getQwenOptions({ ...message })
     switch (role) {
-      case 'system': {
+      case "system": {
         // System messages are sent directly with options.
-        messages.push({ role: 'system', content, ...options })
+        messages.push({ role: "system", content, ...options })
         break
       }
 
-      case 'user': {
-        if (content.length === 1 && content[0].type === 'text') {
+      case "user": {
+        if (content.length === 1 && content[0].type === "text") {
           // For a single text element, simplify the conversion.
           messages.push({
-            role: 'user',
+            role: "user",
             content: content[0].text,
             ...getQwenOptions(content[0]),
           })
@@ -83,23 +83,23 @@ export function convertToQwenChatMessages(
         }
         // For multiple content parts, process each part.
         messages.push({
-          role: 'user',
+          role: "user",
           content: content.map((part) => {
             const partOptions = getQwenOptions(part)
             switch (part.type) {
-              case 'text': {
+              case "text": {
                 // Plain text conversion.
-                return { type: 'text', text: part.text, ...partOptions }
+                return { type: "text", text: part.text, ...partOptions }
               }
-              case 'file': {
+              case "file": {
                 // Check if this is an image file
-                if (part.mediaType && part.mediaType.startsWith('image/')) {
+                if (part.mediaType && part.mediaType.startsWith("image/")) {
                   // Convert images and encode if necessary.
                   const data = part.data
                   let url: string
-                  if (typeof data === 'string') {
+                  if (typeof data === "string") {
                     // Preserve full URLs and pre-formed data URLs; otherwise, treat as raw base64
-                    if (data.startsWith('http') || data.startsWith('data:')) {
+                    if (data.startsWith("http") || data.startsWith("data:")) {
                       url = data
                     }
                     else {
@@ -114,7 +114,7 @@ export function convertToQwenChatMessages(
                     url = `data:${part.mediaType};base64,${convertUint8ArrayToBase64(data)}`
                   }
                   return {
-                    type: 'image_url',
+                    type: "image_url",
                     image_url: { url },
                     ...partOptions,
                   }
@@ -122,7 +122,7 @@ export function convertToQwenChatMessages(
                 // Non-image files are unsupported
                 throw new UnsupportedFunctionalityError({
                   functionality:
-                    'Non-image file content parts in user messages',
+                    "Non-image file content parts in user messages",
                 })
               }
               default: {
@@ -140,27 +140,27 @@ export function convertToQwenChatMessages(
         break
       }
 
-      case 'assistant': {
+      case "assistant": {
         // Build text response and accumulate function/tool calls.
-        let text = ''
+        let text = ""
         const toolCalls: Array<{
           id: string
-          type: 'function'
+          type: "function"
           function: { name: string, arguments: string }
         }> = []
 
         for (const part of content) {
           const partOptions = getQwenOptions(part)
           switch (part.type) {
-            case 'text': {
+            case "text": {
               // Append each text part.
               text += part.text
               break
             }
-            case 'tool-call': {
+            case "tool-call": {
               // Convert tool calls to function calls with serialized arguments.
               const rawArguments
-                = typeof part.input === 'string'
+                = typeof part.input === "string"
                   ? part.input
                   : JSON.stringify(part.input)
               const parsedArguments
@@ -168,7 +168,7 @@ export function convertToQwenChatMessages(
 
               toolCalls.push({
                 id: part.toolCallId,
-                type: 'function',
+                type: "function",
                 function: {
                   name: part.toolName,
                   arguments: parsedArguments,
@@ -177,19 +177,19 @@ export function convertToQwenChatMessages(
               })
               break
             }
-            case 'reasoning': {
+            case "reasoning": {
               break
             }
-            case 'file': {
+            case "file": {
               throw new UnsupportedFunctionalityError({
                 functionality: `${part.type} content parts in assistant messages`,
               })
             }
-            case 'tool-result': {
+            case "tool-result": {
               // Tool results should not appear in assistant messages
               throw new UnsupportedFunctionalityError({
                 functionality:
-                  'tool-result content parts in assistant messages',
+                  "tool-result content parts in assistant messages",
               })
             }
             default: {
@@ -201,7 +201,7 @@ export function convertToQwenChatMessages(
         }
 
         messages.push({
-          role: 'assistant',
+          role: "assistant",
           content: text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...options,
@@ -210,11 +210,11 @@ export function convertToQwenChatMessages(
         break
       }
 
-      case 'tool': {
+      case "tool": {
         // Process tool responses by converting output to JSON string.
         for (const toolResponse of content) {
           // Skip tool approval responses - only handle tool results
-          if (toolResponse.type === 'tool-approval-response') {
+          if (toolResponse.type === "tool-approval-response") {
             continue
           }
 
@@ -223,10 +223,10 @@ export function convertToQwenChatMessages(
 
           // Extract the value from the V3 output format
           let toolContent: string
-          if (output.type === 'text' || output.type === 'error-text') {
+          if (output.type === "text" || output.type === "error-text") {
             toolContent = output.value
           }
-          else if (output.type === 'json' || output.type === 'error-json') {
+          else if (output.type === "json" || output.type === "error-json") {
             toolContent = JSON.stringify(output.value)
           }
           else {
@@ -235,7 +235,7 @@ export function convertToQwenChatMessages(
           }
 
           messages.push({
-            role: 'tool',
+            role: "tool",
             tool_call_id: toolResponse.toolCallId,
             content: toolContent,
             ...toolResponseOptions,

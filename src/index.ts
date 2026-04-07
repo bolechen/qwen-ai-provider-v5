@@ -1,13 +1,13 @@
 export type {
   QwenRerankingModelId,
   QwenRerankingSettings,
-} from './config/reranking'
+} from "./config/reranking"
 export {
   createQwen,
   qwen,
-} from './provider'
+} from "./provider"
 export type {
   QwenProvider,
   QwenProviderSettings,
-} from './provider'
-export { mapQwenFinishReason } from './utils/map-finish-reason'
+} from "./provider"
+export { mapQwenFinishReason } from "./utils/map-finish-reason"

@@ -4,10 +4,10 @@
  * - gte-rerank: GTE reranking models (uses DashScope native API)
  */
 export type QwenRerankingModelId
-  = | 'qwen3-rerank'
-    | 'gte-rerank'
-    | 'gte-rerank-v2'
-    | 'gte-rerank-hybrid-v1'
+  = | "qwen3-rerank"
+    | "gte-rerank"
+    | "gte-rerank-v2"
+    | "gte-rerank-hybrid-v1"
     | (string & {})
 
 /**

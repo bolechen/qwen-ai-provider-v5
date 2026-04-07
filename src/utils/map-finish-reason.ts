@@ -1,4 +1,4 @@
-import type { LanguageModelV3FinishReason } from '@ai-sdk/provider'
+import type { LanguageModelV3FinishReason } from "@ai-sdk/provider"
 
 /**
  * Normalizes Qwen/OpenAI-style `finish_reason` strings for {@link LanguageModelV3FinishReason}.
@@ -14,23 +14,23 @@ import type { LanguageModelV3FinishReason } from '@ai-sdk/provider'
 export function mapQwenFinishReason(
   finishReason: string | null | undefined,
 ): LanguageModelV3FinishReason {
-  let unified: LanguageModelV3FinishReason['unified']
+  let unified: LanguageModelV3FinishReason["unified"]
 
   switch (finishReason) {
-    case 'stop':
-      unified = 'stop'
+    case "stop":
+      unified = "stop"
       break
-    case 'length':
-      unified = 'length'
+    case "length":
+      unified = "length"
       break
-    case 'tool_calls':
-      unified = 'tool-calls'
+    case "tool_calls":
+      unified = "tool-calls"
       break
-    case 'content_filter':
-      unified = 'content-filter'
+    case "content_filter":
+      unified = "content-filter"
       break
     default:
-      unified = 'other'
+      unified = "other"
   }
 
   return {

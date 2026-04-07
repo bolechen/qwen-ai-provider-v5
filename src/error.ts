@@ -1,11 +1,11 @@
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils'
-import { z } from 'zod'
+import { createJsonErrorResponseHandler } from "@ai-sdk/provider-utils"
+import { z } from "zod"
 
 /**
  * Schema defining the structure of a Qwen error response.
  */
 const qwenErrorDataSchema = z.object({
-  object: z.literal('error'),
+  object: z.literal("error"),
   message: z.string(),
   type: z.string(),
   param: z.string().nullable(),

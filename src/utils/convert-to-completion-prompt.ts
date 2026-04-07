@@ -1,8 +1,8 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider'
+import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
-} from '@ai-sdk/provider'
+} from "@ai-sdk/provider"
 
 /**
  * Converts a LanguageModelV3Prompt into a Qwen completion prompt.
@@ -21,11 +21,11 @@ import {
 export function convertToQwenCompletionPrompt({
   prompt,
   inputFormat,
-  user = 'user',
-  assistant = 'assistant',
+  user = "user",
+  assistant = "assistant",
 }: {
   prompt: LanguageModelV3Prompt
-  inputFormat: 'prompt' | 'messages'
+  inputFormat: "prompt" | "messages"
   user?: string
   assistant?: string
 }): {
@@ -34,38 +34,38 @@ export function convertToQwenCompletionPrompt({
 } {
   // If input is a straightforward prompt with one user message, return it directly.
   if (
-    inputFormat === 'prompt'
+    inputFormat === "prompt"
     && prompt.length === 1
-    && prompt[0].role === 'user'
+    && prompt[0].role === "user"
     && prompt[0].content.length === 1
-    && prompt[0].content[0].type === 'text'
+    && prompt[0].content[0].type === "text"
   ) {
     // Return the original text without transformation.
     return { prompt: prompt[0].content[0].text }
   }
 
   // Start assembling the text for a chat message format.
-  let text = ''
+  let text = ""
 
   // If the first message is a system message, add its content first.
-  if (prompt[0].role === 'system') {
+  if (prompt[0].role === "system") {
     const systemContent: any = (prompt[0] as any).content
-    if (typeof systemContent === 'string') {
+    if (typeof systemContent === "string") {
       text += `${systemContent}\n\n`
     }
     else if (Array.isArray(systemContent)) {
       // Map parts to text (only text parts are supported here)
       const systemText = systemContent
         .map((part: any) => {
-          if (part?.type === 'text') {
+          if (part?.type === "text") {
             return part.text
           }
           // System message should not include non-text parts in completion prompts
           throw new UnsupportedFunctionalityError({
-            functionality: `system message ${part?.type ?? 'unknown'} content parts`,
+            functionality: `system message ${part?.type ?? "unknown"} content parts`,
           })
         })
-        .join('')
+        .join("")
       text += `${systemText}\n\n`
     }
     else {
@@ -78,7 +78,7 @@ export function convertToQwenCompletionPrompt({
   // Process each message in the prompt.
   for (const { role, content } of prompt) {
     switch (role) {
-      case 'system': {
+      case "system": {
         // System messages are not expected beyond the first message.
         throw new InvalidPromptError({
           message: `Unexpected system message in prompt: ${content}`,
@@ -86,18 +86,18 @@ export function convertToQwenCompletionPrompt({
         })
       }
 
-      case 'user': {
+      case "user": {
         // Concatenate the parts of user messages.
         const userMessage = content
           .map((part) => {
             switch (part.type) {
-              case 'text': {
+              case "text": {
                 return part.text
               }
-              case 'file': {
+              case "file": {
                 // Files (including images) are not supported.
                 throw new UnsupportedFunctionalityError({
-                  functionality: 'file content parts',
+                  functionality: "file content parts",
                 })
               }
               default: {
@@ -108,29 +108,29 @@ export function convertToQwenCompletionPrompt({
               }
             }
           })
-          .join('')
+          .join("")
         // Append user label and the message.
         text += `${user}:\n${userMessage}\n\n`
         break
       }
 
-      case 'assistant': {
+      case "assistant": {
         // Process assistant messages similarly.
         const assistantMessage = content
           .map((part) => {
             switch (part.type) {
-              case 'text': {
+              case "text": {
                 return part.text
               }
-              case 'tool-call': {
+              case "tool-call": {
                 // Tool-call messages are unsupported.
                 throw new UnsupportedFunctionalityError({
-                  functionality: 'tool-call messages',
+                  functionality: "tool-call messages",
                 })
               }
-              case 'file':
-              case 'reasoning':
-              case 'tool-result': {
+              case "file":
+              case "reasoning":
+              case "tool-result": {
                 // These content types are unsupported.
                 throw new UnsupportedFunctionalityError({
                   functionality: `${part.type} messages`,
@@ -144,16 +144,16 @@ export function convertToQwenCompletionPrompt({
               }
             }
           })
-          .join('')
+          .join("")
         // Append assistant label and the message.
         text += `${assistant}:\n${assistantMessage}\n\n`
         break
       }
 
-      case 'tool': {
+      case "tool": {
         // Tool messages are not supported.
         throw new UnsupportedFunctionalityError({
-          functionality: 'tool messages',
+          functionality: "tool messages",
         })
       }
 

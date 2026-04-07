@@ -1,4 +1,4 @@
-import type { LanguageModelV3Usage } from '@ai-sdk/provider'
+import type { LanguageModelV3Usage } from "@ai-sdk/provider"
 
 /**
  * Build V3 usage object from token counts.
