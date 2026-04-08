@@ -532,7 +532,6 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
           LanguageModelV3StreamPart
         >({
           transform(chunk, controller) {
-            // console.warn('Chat stream chunk: ', chunk)
             if (!chunk.success) {
               if (shouldRetryQwenStreamRequest(chunk.error)) {
                 if (recoverPendingToolCalls(toolCalls, controller)) {
@@ -625,7 +624,6 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
 
             // Handle tool calls
             if (delta.tool_calls != null) {
-              // console.warn('Tool calls: ', delta.tool_calls)
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index
 
@@ -657,13 +655,6 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
                     arguments: toolCallDelta.function.arguments ?? "",
                     hasFinished: false,
                   }
-                  console.warn("[QwenTool][stream-init]", {
-                    index,
-                    id: toolCalls[index].id,
-                    name: toolCalls[index].name,
-                    initialArguments: toolCalls[index].arguments,
-                  })
-
                   const toolCall = toolCalls[index]
 
                   // Emit tool-input-start
@@ -687,22 +678,11 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
                 const toolCall = toolCalls[index]
 
                 if (toolCall.hasFinished) {
-                  console.warn("[QwenTool][stream-skip-finished]", {
-                    index,
-                    id: toolCall.id,
-                    name: toolCall.name,
-                  })
                   continue
                 }
 
                 if (toolCallDelta.function?.arguments != null) {
                   toolCall.arguments += toolCallDelta.function.arguments
-                  console.warn("[QwenTool][stream-append-arguments]", {
-                    index,
-                    id: toolCall.id,
-                    appended: toolCallDelta.function.arguments,
-                    accumulated: toolCall.arguments,
-                  })
                 }
 
                 controller.enqueue({
@@ -715,9 +695,6 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            console.warn("[QwenTool][flush-start]", {
-              pendingToolCalls: toolCalls.filter(tc => tc != null && !tc.hasFinished).length,
-            })
             // Close text and reasoning if they were started
             if (textId) {
               controller.enqueue({ type: "text-end", id: textId })
@@ -735,20 +712,8 @@ export class QwenChatLanguageModel implements LanguageModelV3 {
                 phase: "final",
               })
               if (parsed == null) {
-                console.warn("[QwenTool][flush-parse-failed]", {
-                  index: i,
-                  id: toolCall.id,
-                  name: toolCall.name,
-                  rawArguments: toolCall.arguments,
-                })
                 continue
               }
-              console.warn("[QwenTool][flush-parse-success]", {
-                index: i,
-                id: toolCall.id,
-                name: toolCall.name,
-                parsedInput: parsed,
-              })
 
               controller.enqueue({
                 type: "tool-input-end",
@@ -919,7 +884,6 @@ function parseToolCallArguments(
     }
   }
 
-  console.error("[QwenTool][parse-failed]", { phase, input })
   return null
 }
 
@@ -1064,9 +1028,6 @@ function recoverPendingToolCalls(
   controller: TransformStreamDefaultController<LanguageModelV3StreamPart>,
 ): boolean {
   let recoveredAnyToolCall = false
-  console.warn("[QwenTool][recover-start]", {
-    pendingToolCalls: toolCalls.filter(tc => tc != null && !tc.hasFinished).length,
-  })
   for (const toolCall of toolCalls) {
     if (toolCall?.hasFinished)
       continue
@@ -1074,18 +1035,8 @@ function recoverPendingToolCalls(
       phase: "final",
     })
     if (recoveredInput == null || toolCall?.id == null || toolCall?.name == null) {
-      console.warn("[QwenTool][recover-skip]", {
-        id: toolCall?.id,
-        name: toolCall?.name,
-        rawArguments: toolCall?.arguments,
-      })
       continue
     }
-    console.warn("[QwenTool][recover-success]", {
-      id: toolCall.id,
-      name: toolCall.name,
-      input: recoveredInput,
-    })
     controller.enqueue({
       type: "tool-input-end",
       id: toolCall.id,
