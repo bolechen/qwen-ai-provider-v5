@@ -1,7 +1,12 @@
 import type { LanguageModelV3FinishReason } from "@ai-sdk/provider"
 
 /**
- * Maps the finish reason from the backend response to a standardized format.
+ * Normalizes Qwen/OpenAI-style `finish_reason` strings for {@link LanguageModelV3FinishReason}.
+ *
+ * **Used by:** `QwenChatLanguageModel`, `QwenCompletionLanguageModel` (generate + stream).
+ *
+ * **Not applicable:** embedding and reranking APIs do not return `choices[].finish_reason`;
+ * those models map success payloads only and surface HTTP/JSON errors without retries.
  *
  * @param finishReason - The original finish reason string.
  * @returns The mapped LanguageModelV3FinishReason.

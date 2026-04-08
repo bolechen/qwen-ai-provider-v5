@@ -4,24 +4,24 @@ import type {
   RerankingModelV3,
 } from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
-import type { QwenChatModelId, QwenChatSettings } from "./qwen-chat-settings"
+import type { QwenChatModelId, QwenChatSettings } from "./config/chat"
 import type {
   QwenCompletionModelId,
   QwenCompletionSettings,
-} from "./qwen-completion-settings"
+} from "./config/completion"
 import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
-} from "./qwen-embedding-settings"
+} from "./config/embedding"
 import type {
   QwenRerankingModelId,
   QwenRerankingSettings,
-} from "./qwen-reranking-settings"
+} from "./config/reranking"
 import { loadApiKey, withoutTrailingSlash } from "@ai-sdk/provider-utils"
-import { QwenChatLanguageModel } from "./qwen-chat-language-model"
-import { QwenCompletionLanguageModel } from "./qwen-completion-language-model"
-import { QwenEmbeddingModel } from "./qwen-embedding-model"
-import { QwenRerankingModel } from "./qwen-reranking-model"
+import { QwenChatLanguageModel } from "./models/chat"
+import { QwenCompletionLanguageModel } from "./models/completion"
+import { QwenEmbeddingModel } from "./models/embedding"
+import { QwenRerankingModel } from "./models/reranking"
 
 /**
  * QwenProvider function type and its properties.

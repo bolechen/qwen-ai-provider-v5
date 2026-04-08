@@ -6,7 +6,7 @@
  */
 import { rerank } from "ai"
 import { describe, expect, it } from "vitest"
-import { createQwen } from "../../qwen-provider"
+import { createQwen } from "../../provider"
 import "dotenv/config"
 
 // Skip if no API key

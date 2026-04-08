@@ -1,10 +1,10 @@
 import type { RerankingModelV3 } from "@ai-sdk/provider"
 import type { FetchFunction } from "@ai-sdk/provider-utils"
-import type { QwenErrorStructure } from "./qwen-error"
 import type {
   QwenRerankingModelId,
   QwenRerankingSettings,
-} from "./qwen-reranking-settings"
+} from "../config/reranking"
+import type { QwenErrorStructure } from "../error"
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -12,7 +12,7 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
-import { defaultQwenErrorStructure } from "./qwen-error"
+import { defaultQwenErrorStructure } from "../error"
 
 export interface QwenRerankingConfig {
   provider: string

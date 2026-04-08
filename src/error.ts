@@ -42,4 +42,5 @@ export const qwenFailedResponseHandler = createJsonErrorResponseHandler({
 export const defaultQwenErrorStructure: QwenErrorStructure<QwenErrorData> = {
   errorSchema: qwenErrorDataSchema,
   errorToMessage: data => data.message,
+  isRetryable: response => response.status === 429 || response.status >= 500,
 }

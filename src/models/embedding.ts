@@ -3,8 +3,8 @@ import type { FetchFunction } from "@ai-sdk/provider-utils"
 import type {
   QwenEmbeddingModelId,
   QwenEmbeddingSettings,
-} from "./qwen-embedding-settings"
-import type { QwenErrorStructure } from "./qwen-error"
+} from "../config/embedding"
+import type { QwenErrorStructure } from "../error"
 import { TooManyEmbeddingValuesForCallError } from "@ai-sdk/provider"
 import {
   combineHeaders,
@@ -13,7 +13,7 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
-import { defaultQwenErrorStructure } from "./qwen-error"
+import { defaultQwenErrorStructure } from "../error"
 
 interface QwenEmbeddingConfig {
   /**
@@ -119,11 +119,9 @@ export class QwenEmbeddingModel implements EmbeddingModelV3 {
         user: this.settings.user,
         ...specificProviderOptions,
       },
-      // Handle response errors using the provided error structure.
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultQwenErrorStructure,
       ),
-      // Process successful responses based on a minimal schema.
       successfulResponseHandler: createJsonResponseHandler(
         qwenTextEmbeddingResponseSchema,
       ),

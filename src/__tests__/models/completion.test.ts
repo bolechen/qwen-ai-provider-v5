@@ -2,8 +2,8 @@
 import type { LanguageModelV3Prompt } from "@ai-sdk/provider"
 import { convertReadableStreamToArray } from "@ai-sdk/provider-utils/test"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { QwenCompletionLanguageModel } from "../qwen-completion-language-model"
-import { createQwen } from "../qwen-provider"
+import { QwenCompletionLanguageModel } from "../../models/completion"
+import { createQwen } from "../../provider"
 
 const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: "user", content: [{ type: "text", text: "Hello" }] },
@@ -392,6 +392,58 @@ describe("doStream", () => {
         outputTokens: { total: 362, text: undefined, reasoning: undefined },
       },
     })
+  })
+
+  it("should throw on retryable errors from stream request", async () => {
+    let fetchCalls = 0
+
+    const provider = createQwen({
+      baseURL: "https://my.api.com/v1/",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      fetch: async (_url, init) => {
+        fetchCalls++
+
+        if (init?.body) {
+          requestBody = JSON.parse(init.body as string)
+        }
+
+        if (fetchCalls === 1) {
+          return new Response(JSON.stringify({
+            object: "error",
+            message: "InternalServerError: list index out of range",
+            type: "InternalServerError",
+            param: null,
+            code: null,
+          }), {
+            status: 500,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+          start(controller) {
+            for (const chunk of responseChunks) {
+              controller.enqueue(encoder.encode(chunk))
+            }
+            controller.close()
+          },
+        })
+
+        return new Response(stream, {
+          headers: responseHeaders,
+        })
+      },
+    })
+
+    const model = provider.completion("qwen-plus")
+    await expect(model.doStream({
+      prompt: TEST_PROMPT,
+    })).rejects.toThrow("InternalServerError: list index out of range")
+    expect(fetchCalls).toBe(1)
+    expect(requestBody).toMatchObject({ stream: true })
   })
 
   it("should handle unparsable stream parts", async () => {

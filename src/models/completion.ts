@@ -16,8 +16,8 @@ import type {
 import type {
   QwenCompletionModelId,
   QwenCompletionSettings,
-} from "./qwen-completion-settings"
-import type { QwenErrorStructure } from "./qwen-error"
+} from "../config/completion"
+import type { QwenErrorStructure } from "../error"
 import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
 import {
   combineHeaders,
@@ -28,11 +28,11 @@ import {
   postJsonToApi,
 } from "@ai-sdk/provider-utils"
 import { z } from "zod"
-import { buildUsage } from "./build-usage"
-import { convertToQwenCompletionPrompt } from "./convert-to-qwen-completion-prompt"
-import { getResponseMetadata } from "./get-response-metadata"
-import { mapQwenFinishReason } from "./map-qwen-finish-reason"
-import { defaultQwenErrorStructure } from "./qwen-error"
+import { defaultQwenErrorStructure } from "../error"
+import { buildUsage } from "../utils/build-usage"
+import { convertToQwenCompletionPrompt } from "../utils/convert-to-completion-prompt"
+import { getResponseMetadata } from "../utils/get-response-metadata"
+import { mapQwenFinishReason } from "../utils/map-finish-reason"
 
 interface QwenCompletionConfig {
   provider: string

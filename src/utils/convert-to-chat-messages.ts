@@ -2,9 +2,9 @@ import type {
   LanguageModelV3Prompt,
   SharedV3ProviderOptions,
 } from "@ai-sdk/provider"
-import type { QwenChatPrompt } from "./qwen-api-types"
+import type { QwenChatPrompt } from "../types/api-types"
 import { UnsupportedFunctionalityError } from "@ai-sdk/provider"
-import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils"
+import { convertUint8ArrayToBase64, isParsableJson } from "@ai-sdk/provider-utils"
 
 // JSDoc for helper function to extract Qwen options.
 /**
@@ -19,6 +19,36 @@ function getQwenOptions(message: {
   providerOptions?: SharedV3ProviderOptions
 }) {
   return message?.providerOptions?.qwen ?? {}
+}
+
+function parseToolCallArguments(rawArguments: string | null | undefined) {
+  if (!rawArguments)
+    return null
+
+  const input = rawArguments.trim()
+  if (!input)
+    return null
+
+  const candidates = [input]
+  const startsWithObject = input.startsWith("{")
+  const endsWithObject = input.endsWith("}")
+
+  if (!startsWithObject && !endsWithObject) {
+    candidates.push(`{${input}}`)
+  }
+  else if (startsWithObject && !endsWithObject) {
+    candidates.push(`${input}}`)
+  }
+  else if (!startsWithObject && endsWithObject) {
+    candidates.push(`{${input}`)
+  }
+
+  for (const candidate of candidates) {
+    if (isParsableJson(candidate))
+      return candidate
+  }
+
+  return null
 }
 
 /**
@@ -129,22 +159,31 @@ export function convertToQwenChatMessages(
             }
             case "tool-call": {
               // Convert tool calls to function calls with serialized arguments.
+              const rawArguments
+                = typeof part.input === "string"
+                  ? part.input
+                  : JSON.stringify(part.input)
+              const parsedArguments
+                = parseToolCallArguments(rawArguments) ?? rawArguments
+
               toolCalls.push({
                 id: part.toolCallId,
                 type: "function",
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: parsedArguments,
                 },
                 ...partOptions,
               })
               break
             }
-            case "file":
             case "reasoning": {
-              // These parts are returned by models but not needed in API requests.
-              // Silently ignore to avoid breaking multi-turn conversations.
               break
+            }
+            case "file": {
+              throw new UnsupportedFunctionalityError({
+                functionality: `${part.type} content parts in assistant messages`,
+              })
             }
             case "tool-result": {
               // Tool results should not appear in assistant messages

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createQwen } from "../qwen-provider"
+import { createQwen } from "../../provider"
 
 const dummyRankingResults = [
   { index: 1, relevance_score: 0.95 },
@@ -263,6 +263,53 @@ describe("doRerank", () => {
     })
 
     expect(warnings).toStrictEqual([])
+  })
+
+  it("should throw on retryable errors from rerank request", async () => {
+    let fetchCalls = 0
+
+    const provider = createQwen({
+      baseURL: "https://my.api.com/compatible-mode/v1",
+      headers: {
+        Authorization: `Bearer test-api-key`,
+      },
+      fetch: async (url, init) => {
+        fetchCalls++
+        requestUrl = url as string
+        if (init?.body) {
+          requestBody = JSON.parse(init.body as string)
+        }
+
+        if (fetchCalls === 1) {
+          return new Response(JSON.stringify({
+            object: "error",
+            message: "Bad Gateway",
+            type: "BadGateway",
+            param: null,
+            code: null,
+          }), {
+            status: 502,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        const bodyLength = JSON.stringify(responseBody).length
+        return new Response(JSON.stringify(responseBody), {
+          headers: {
+            ...responseHeaders,
+            "content-length": bodyLength.toString(),
+          },
+        })
+      },
+    })
+
+    const model = provider.rerankingModel("gte-rerank-v2")
+    await expect(model.doRerank({
+      documents: { type: "text", values: testDocuments },
+      query: "talk about rain",
+    })).rejects.toThrow("Bad Gateway")
+    expect(fetchCalls).toBe(1)
+    expect(requestUrl).toBe("https://my.api.com/api/v1/services/rerank/text-rerank/text-rerank")
   })
 })
 

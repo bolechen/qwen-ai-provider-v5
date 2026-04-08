@@ -128,12 +128,10 @@ export function convertToQwenCompletionPrompt({
                   functionality: "tool-call messages",
                 })
               }
-              case "reasoning": {
-                // Silently ignore reasoning parts — not needed in API requests.
-                return ""
-              }
               case "file":
+              case "reasoning":
               case "tool-result": {
+                // These content types are unsupported.
                 throw new UnsupportedFunctionalityError({
                   functionality: `${part.type} messages`,
                 })
